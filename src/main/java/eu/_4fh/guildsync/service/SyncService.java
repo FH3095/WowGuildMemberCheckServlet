@@ -58,13 +58,17 @@ public class SyncService {
 		try (Transaction transaction = Transaction.getTransaction()) {
 			db.accountUpdateById(accountId, battleNetId, token);
 
+			boolean addedRemoteAccount = false;
 			if (db.remoteAccountIdGetByAccountId(accountId, remoteSystem) == null) {
 				db.remoteAccountAdd(accountId, remoteSystem, remoteId);
+				addedRemoteAccount = true;
 			}
 
 			boolean hasNewCharacter = addCharacters(accountId, characters);
 			if (hasNewCharacter) {
 				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
+			} else if (addedRemoteAccount) {
+				db.remoteCommandAdd(remoteSystem, accountId, RemoteCommand.Commands.ACC_UPDATE);
 			}
 			transaction.commit();
 		} catch (SQLException e) {

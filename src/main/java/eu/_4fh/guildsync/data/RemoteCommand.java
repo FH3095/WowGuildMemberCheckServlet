@@ -2,8 +2,11 @@ package eu._4fh.guildsync.data;
 
 import java.util.Objects;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 
+@XmlRootElement
 public class RemoteCommand {
 	public static enum Commands {
 		ACC_UPDATE;
