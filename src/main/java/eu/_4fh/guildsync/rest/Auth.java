@@ -164,7 +164,7 @@ public class Auth {
 							request.getRequestURL().append('?').append(request.getQueryString()).toString())))
 					.accessToken(executor);
 
-			log.debug("Auth finished for " + authInformations.remoteAccountId + "@" + authInformations.remoteSystemName
+			log.info("Auth finished for " + authInformations.remoteAccountId + "@" + authInformations.remoteSystemName
 					+ ". Token: " + token.accessToken() + " valid until " + token.expirationDate().toString() + " for "
 					+ token.scope().toString() + " as " + token.tokenType() + " ; Redirecting to "
 					+ authInformations.redirectTo);

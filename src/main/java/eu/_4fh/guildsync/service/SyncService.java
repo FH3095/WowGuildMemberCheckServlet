@@ -167,11 +167,15 @@ public class SyncService {
 				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
 				// Neuer Account -> Alle Systeme zum Update zwingen
 				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
+				log.info("Added new account " + accountId + " for character " + character.toString() + " to remote "
+						+ remoteAccountId + "@" + remoteSystemName);
 			} else if (db.remoteAccountIdGetByAccountId(accountId, remoteSystemName) == null) {
 				// Den Account samt Char gab es schon. Nur die Verknüpfung zur RemoteId hinzufügen.
 				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
 				// Der Account ist nur für ein System neu. Dieses System zum Update zwingen.
 				db.remoteCommandAdd(remoteSystemName, accountId, RemoteCommand.Commands.ACC_UPDATE);
+				log.info("Added existing account " + accountId + " with character " + character.toString()
+						+ " to remote " + remoteAccountId + "@" + remoteSystemName);
 			}
 
 			transaction.commit();
@@ -206,7 +210,7 @@ public class SyncService {
 	private String updateAccountsFromGuildList() {
 		StringBuilder result = new StringBuilder();
 		try {
-			log.debug("Updating characters from guild list for " + guildId);
+			log.info("Updating characters from guild list for " + guildId);
 			List<Long> changedAccounts = new ArrayList<>();
 			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
@@ -222,7 +226,7 @@ public class SyncService {
 						throw new IllegalStateException("Cant find account-id for character " + character.getName()
 								+ "-" + character.getServer());
 					}
-					log.debug("Delete no longer existing character " + character.getName() + "-" + character.getServer()
+					log.info("Delete no longer existing character " + character.getName() + "-" + character.getServer()
 							+ " from account " + accountId);
 					db.characterDelete(accountId, character);
 					changedAccounts.add(accountId);
@@ -244,7 +248,7 @@ public class SyncService {
 		for (Account acc : toUpdateAccounts) {
 			try {
 				boolean charactersAdded = false;
-				log.debug("Update characters for " + acc.getAccountId() + " with " + acc.getToken());
+				log.info("Update characters for " + acc.getAccountId() + " with " + acc.getToken());
 				{
 					HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 					List<BNetProfileWowCharacter> bnetCharacters = executor.execute(config.uriBNetAccountCharacters(),
