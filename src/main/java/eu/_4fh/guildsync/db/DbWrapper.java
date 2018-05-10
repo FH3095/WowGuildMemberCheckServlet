@@ -428,4 +428,20 @@ public class DbWrapper {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public @CheckForNull Long accountIdGetByRemoteAccount(final @NonNull String remoteSystemName,
+			final @NonNull long remoteAccountId) {
+		final String sql = "SELECT account_id FROM account_remote_ids WHERE remote_system_name = ? AND remote_id = ?";
+		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
+			stmt.setString(1, remoteSystemName);
+			stmt.setLong(2, remoteAccountId);
+			ResultSet rs = stmt.executeQuery();
+			if (!rs.next()) {
+				return null;
+			}
+			return rs.getLong(1);
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

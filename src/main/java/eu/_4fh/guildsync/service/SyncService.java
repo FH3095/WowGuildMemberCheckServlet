@@ -19,6 +19,7 @@ import org.dmfs.oauth2.client.http.decorators.BearerAuthenticatedRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.config.Config;
 import eu._4fh.guildsync.data.Account;
@@ -158,8 +159,29 @@ public class SyncService {
 	public long addOrUpdateAccount(final @NonNull String remoteSystemName, final @NonNull long remoteAccountId,
 			final @NonNull WowCharacter character) {
 		try (Transaction transaction = Transaction.getTransaction()) {
-			Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
+			@CheckForNull
+			Long accountId = null;
+			final @NonNull boolean accountExists;
+			final @NonNull boolean remoteAccountExists;
+			final @NonNull boolean charExists;
+			{
+				final @CheckForNull Long accountIdByChar = db.accountIdGetByCharacter(character.getName(),
+						character.getServer());
+				final @CheckForNull Long accountIdByRemote = db.accountIdGetByRemoteAccount(remoteSystemName,
+						remoteAccountId);
+				if (accountIdByChar != null && accountIdByRemote != null
+						&& !accountIdByChar.equals(accountIdByRemote)) {
+					throw new IllegalArgumentException(
+							"Characters " + character.toString() + " already exists and belongs to " + accountIdByChar
+									+ " but should be added to " + accountIdByRemote);
+				}
+				accountId = accountIdByChar != null ? accountIdByChar : accountIdByRemote;
+				accountExists = accountId != null;
+				remoteAccountExists = accountIdByRemote != null;
+				charExists = accountIdByChar != null;
+			}
 
+			// Account dont exists -> Create
 			if (accountId == null) {
 				// Wenn es den Char nicht gibt, gibt es den Account auch nicht -> Beides anlegen
 				accountId = db.accountAdd();
@@ -169,14 +191,27 @@ public class SyncService {
 				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
 				log.info("Added new account " + accountId + " for character " + character.toString() + " to remote "
 						+ remoteAccountId + "@" + remoteSystemName);
-			} else if (db.remoteAccountIdGetByAccountId(accountId, remoteSystemName) == null) {
+			}
+			if (!remoteAccountExists) {
 				// Den Account samt Char gab es schon. Nur die Verknüpfung zur RemoteId hinzufügen.
 				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
 				// Der Account ist nur für ein System neu. Dieses System zum Update zwingen.
-				db.remoteCommandAdd(remoteSystemName, accountId, RemoteCommand.Commands.ACC_UPDATE);
-				log.info("Added existing account " + accountId + " with character " + character.toString()
-						+ " to remote " + remoteAccountId + "@" + remoteSystemName);
+				if (accountExists) {
+					db.remoteCommandAdd(remoteSystemName, accountId, RemoteCommand.Commands.ACC_UPDATE);
+				}
+				log.info("Added account " + accountId + " with character " + character.toString() + " to remote "
+						+ remoteAccountId + "@" + remoteSystemName);
 			}
+			if (!charExists) {
+				db.characterAdd(accountId, character);
+				if (accountExists) {
+					createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
+				}
+			}
+
+			log.info("Added char. " + (accountExists ? "" : "New ") + "account: " + accountId + " ; "
+					+ (remoteAccountExists ? "" : "New ") + "remote account: " + remoteAccountId + "@"
+					+ remoteSystemName + " ; " + (charExists ? "" : "New ") + "character: " + character.toString());
 
 			transaction.commit();
 			return accountId;
