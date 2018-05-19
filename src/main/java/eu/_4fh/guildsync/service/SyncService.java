@@ -185,18 +185,14 @@ public class SyncService {
 			if (accountId == null) {
 				// Wenn es den Char nicht gibt, gibt es den Account auch nicht -> Beides anlegen
 				accountId = db.accountAdd();
-				db.characterAdd(accountId, character);
-				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
-				// Neuer Account -> Alle Systeme zum Update zwingen
-				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
 				log.info("Added new account " + accountId + " for character " + character.toString() + " to remote "
 						+ remoteAccountId + "@" + remoteSystemName);
 			}
 			if (!remoteAccountExists) {
 				// Den Account samt Char gab es schon. Nur die Verknüpfung zur RemoteId hinzufügen.
 				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
-				// Der Account ist nur für ein System neu. Dieses System zum Update zwingen.
-				if (accountExists) {
+				// Der Account samt Char ist nur für ein System neu. Dieses System zum Update zwingen.
+				if (charExists) {
 					db.remoteCommandAdd(remoteSystemName, accountId, RemoteCommand.Commands.ACC_UPDATE);
 				}
 				log.info("Added account " + accountId + " with character " + character.toString() + " to remote "
@@ -204,9 +200,7 @@ public class SyncService {
 			}
 			if (!charExists) {
 				db.characterAdd(accountId, character);
-				if (accountExists) {
-					createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
-				}
+				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
 			}
 
 			log.info("Added char. " + (accountExists ? "" : "New ") + "account: " + accountId + " ; "

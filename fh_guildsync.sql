@@ -55,7 +55,7 @@ CREATE TABLE `account_remote_ids` (
 DELIMITER $$
 CREATE TRIGGER `validate_unique_remote_system_and_remote_id_per_guild_on_insert` BEFORE INSERT ON `account_remote_ids` FOR EACH ROW BEGIN
 	IF (SELECT COUNT(*) FROM account_remote_ids WHERE
-      remote_system_name = NEW.remote_system_name AND remote_id = NEW.remote_id AND
+      account_id <> NEW.account_id AND remote_system_name = NEW.remote_system_name AND remote_id = NEW.remote_id AND
       account_id IN (SELECT id FROM accounts WHERE guild_id IN (SELECT guild_id FROM accounts WHERE id = NEW.account_id))) > 0 THEN
         SET @message_text = concat('remote_system_name-remote_id ',NEW.remote_system_name,'-',NEW.remote_id,' not unique for guild of account ',NEW.account_id);
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @message_text;
@@ -66,7 +66,7 @@ DELIMITER ;
 DELIMITER $$
 CREATE TRIGGER `validate_unique_remote_system_and_remote_id_per_guild_on_update` BEFORE UPDATE ON `account_remote_ids` FOR EACH ROW BEGIN
 	IF (SELECT COUNT(*) FROM account_remote_ids WHERE
-      remote_system_name = NEW.remote_system_name AND remote_id = NEW.remote_id AND
+      account_id <> NEW.account_id AND remote_system_name = NEW.remote_system_name AND remote_id = NEW.remote_id AND
       account_id IN (SELECT id FROM accounts WHERE guild_id IN (SELECT guild_id FROM accounts WHERE id = NEW.account_id))) > 0 THEN
         SET @message_text = concat('remote_system_name-remote_id ',NEW.remote_system_name,'-',NEW.remote_id,' not unique for guild of account ',NEW.account_id);
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @message_text;

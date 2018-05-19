@@ -55,9 +55,9 @@ public class Transaction implements AutoCloseable {
 		}
 		try {
 			currentTransaction.remove();
+			log.debug("END");
 			connection.rollback();
 			connection.close();
-			log.debug("END");
 		} catch (SQLException e) {
 			try {
 				connection.close();
@@ -73,8 +73,8 @@ public class Transaction implements AutoCloseable {
 			log.debug("Suppress commit, only most outer level can commit");
 			return;
 		}
-		connection.commit();
 		log.debug("COMMIT");
+		connection.commit();
 	}
 
 	public static Transaction getTransaction() {
