@@ -13,6 +13,9 @@ import org.dmfs.httpessentials.client.HttpRequestExecutor;
 import org.dmfs.httpessentials.decoration.HeaderDecorated;
 import org.dmfs.httpessentials.exceptions.ProtocolError;
 import org.dmfs.httpessentials.exceptions.ProtocolException;
+import org.dmfs.httpessentials.exceptions.RedirectionException;
+import org.dmfs.httpessentials.exceptions.ServerErrorException;
+import org.dmfs.httpessentials.exceptions.UnexpectedStatusException;
 import org.dmfs.httpessentials.httpurlconnection.HttpUrlConnectionExecutor;
 import org.dmfs.oauth2.client.OAuth2AccessToken;
 import org.dmfs.oauth2.client.http.decorators.BearerAuthenticatedRequest;
@@ -275,27 +278,50 @@ public class SyncService {
 		StringBuilder result = new StringBuilder();
 		List<Account> toUpdateAccounts = db.accountsGetWithTokenValidUntil(DateHelper.getToday());
 		for (Account acc : toUpdateAccounts) {
+			@CheckForNull
+			Throwable exception;
 			try {
-				boolean charactersAdded = false;
-				log.info("Update characters for " + acc.getAccountId() + " with " + acc.getToken());
-				{
-					HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
-					List<BNetProfileWowCharacter> bnetCharacters = executor.execute(config.uriBNetAccountCharacters(),
-							new HeaderDecorated<>(new BNetProfileWowCharactersRequest(),
-									new TokenHeaderDecorator(acc.getToken())));
-					bnetCharacters = Collections.unmodifiableList(bnetCharacters);
-					charactersAdded = addCharacters(acc.getAccountId(), bnetCharacters);
-
-					if (charactersAdded) {
-						createRemoteCommands(acc.getAccountId(), RemoteCommand.Commands.ACC_UPDATE);
+				int numTries = 0;
+				do {
+					numTries++;
+					exception = null;
+					try {
+						updateCharactersForAccount(acc);
+					} catch (ServerErrorException e) {
+						log.warn("Cant update characters for " + acc.getAccountId() + ". Retry "
+								+ Boolean.toString(numTries < config.bnetNumRetries()), e);
+						exception = e;
 					}
-				}
+				} while (exception != null && numTries < config.bnetNumRetries());
 			} catch (Throwable t) {
-				log.error("Cant update characters for " + acc.getAccountId() + ": ", t);
+				exception = t;
+			}
+			if (exception != null) {
+				log.error("Cant update characters for " + acc.getAccountId() + ": ", exception);
 				result.append("Cant update characters for ").append(acc.getAccountId()).append(": ")
-						.append(t.getMessage()).append('\n');
+						.append(exception.getClass().getSimpleName()).append(' ').append(exception.getMessage())
+						.append('\n');
+
 			}
 		}
 		return result.toString();
+	}
+
+	private void updateCharactersForAccount(final @NonNull Account acc)
+			throws RedirectionException, UnexpectedStatusException, IOException, ProtocolError, ProtocolException {
+		boolean charactersAdded = false;
+		log.info("Update characters for " + acc.getAccountId() + " with " + acc.getToken());
+		{
+			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
+			List<BNetProfileWowCharacter> bnetCharacters = executor.execute(config.uriBNetAccountCharacters(),
+					new HeaderDecorated<>(new BNetProfileWowCharactersRequest(),
+							new TokenHeaderDecorator(acc.getToken())));
+			bnetCharacters = Collections.unmodifiableList(bnetCharacters);
+			charactersAdded = addCharacters(acc.getAccountId(), bnetCharacters);
+
+			if (charactersAdded) {
+				createRemoteCommands(acc.getAccountId(), RemoteCommand.Commands.ACC_UPDATE);
+			}
+		}
 	}
 }

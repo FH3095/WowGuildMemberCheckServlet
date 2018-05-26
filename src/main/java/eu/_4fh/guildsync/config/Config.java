@@ -36,6 +36,7 @@ public class Config {
 	// Values from properties-File
 	private final @NonNull String bnetApiHost;
 	private final @NonNull String bnetApiLocale;
+	private final @NonNull int bnetNumRetries;
 
 	private final @NonNull String dbUrl;
 	private final @NonNull String dbUser;
@@ -75,6 +76,10 @@ public class Config {
 
 		bnetApiHost = readProp(props, "BNet.ApiHost"); // "eu.api.battle.net";
 		bnetApiLocale = readProp(props, "BNet.ApiLocale"); // "en_GB";
+		bnetNumRetries = Integer.parseInt(readProp(props, "BNet.Retries"));
+		if (bnetNumRetries < 1) {
+			throw new RuntimeException("BNet.Retries must be greater than 0.");
+		}
 		final String bnetApiKey = readProp(props, "BNet.ApiKey"); // "hhhxv25rr3aemezs6a7ezydhthscsqqz";
 
 		final URI bnetApiBaseUrl = URI.create("https://" + bnetApiHost);
@@ -145,5 +150,9 @@ public class Config {
 
 	public @NonNull URI uriBNetGuildCharacters(final @NonNull String guildName, final @NonNull String guildServer) {
 		return uriBNetGuildCharactersPattern.build(guildServer, guildName);
+	}
+
+	public @NonNull int bnetNumRetries() {
+		return bnetNumRetries;
 	}
 }
