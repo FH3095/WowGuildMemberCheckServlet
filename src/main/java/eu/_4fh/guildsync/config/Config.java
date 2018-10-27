@@ -13,49 +13,54 @@ import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Properties;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.ws.rs.core.UriBuilder;
 
+import org.dmfs.httpessentials.exceptions.ProtocolError;
+import org.dmfs.httpessentials.exceptions.ProtocolException;
+import org.dmfs.httpessentials.httpurlconnection.HttpUrlConnectionExecutor;
 import org.dmfs.oauth2.client.BasicOAuth2AuthorizationProvider;
 import org.dmfs.oauth2.client.BasicOAuth2Client;
 import org.dmfs.oauth2.client.BasicOAuth2ClientCredentials;
+import org.dmfs.oauth2.client.OAuth2AccessToken;
 import org.dmfs.oauth2.client.OAuth2Client;
 import org.dmfs.oauth2.client.OAuth2Scope;
+import org.dmfs.oauth2.client.grants.ClientCredentialsGrant;
 import org.dmfs.oauth2.client.scope.BasicScope;
 import org.dmfs.rfc3986.encoding.Precoded;
 import org.dmfs.rfc3986.uris.LazyUri;
+import org.dmfs.rfc5545.DateTime;
 import org.dmfs.rfc5545.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-
 public class Config {
 	private static final Logger log = LoggerFactory.getLogger(Config.class);
-	private static final @NonNull Config instance = new Config();
+	private static final @Nonnull Config instance = new Config();
 
 	// Values from properties-File
-	private final @NonNull String bnetApiHost;
-	private final @NonNull String bnetApiLocale;
-	private final @NonNull int bnetNumRetries;
+	private final @Nonnull int bnetNumRetries;
 
-	private final @NonNull String dbUrl;
-	private final @NonNull String dbUser;
-	private final @NonNull String dbPassword;
+	private final @Nonnull String dbUrl;
+	private final @Nonnull String dbUser;
+	private final @Nonnull String dbPassword;
 
 	// Constructed Values
-	private final @NonNull OAuth2Client oAuth2Client;
+	private final @Nonnull OAuth2Client oAuth2Client;
+	private @CheckForNull OAuth2AccessToken oAuthToken;
 
-	private final @NonNull List<String> allowedRemoteSystems;
+	private final @Nonnull List<String> allowedRemoteSystems;
 
-	private final @NonNull URI uriBNetAccountInfo;
-	private final @NonNull URI uriBNetAccountCharacters;
-	private final @NonNull UriBuilder uriBNetGuildCharactersPattern;
+	private final @Nonnull URI uriBNetAccountInfo;
+	private final @Nonnull URI uriBNetAccountCharacters;
+	private final @Nonnull UriBuilder uriBNetGuildCharactersPattern;
 
-	public static @NonNull Config getInstance() {
+	public static @Nonnull Config getInstance() {
 		return instance;
 	}
 
-	private static final String readProp(final @NonNull Properties props, final @NonNull String key) {
+	private static final String readProp(final @Nonnull Properties props, final @Nonnull String key) {
 		return Objects.requireNonNull(props.getProperty(key), "Property-Key missing: " + key).trim();
 	}
 
@@ -74,17 +79,17 @@ public class Config {
 		dbUser = readProp(props, "DB.User");
 		dbPassword = readProp(props, "DB.Password");
 
-		bnetApiHost = readProp(props, "BNet.ApiHost"); // "eu.api.battle.net";
-		bnetApiLocale = readProp(props, "BNet.ApiLocale"); // "en_GB";
+		final URI bnetApiBaseUrl = URI.create("https://" + readProp(props, "BNet.ApiHost")); // "eu.api.battle.net";
+		final URI bnetOAuthBaseUrl = URI.create("https://" + readProp(props, "BNet.OAuthHost"));
+		final String bnetApiLocale = readProp(props, "BNet.ApiLocale"); // "en_GB";
 		bnetNumRetries = Integer.parseInt(readProp(props, "BNet.Retries"));
 		if (bnetNumRetries < 1) {
 			throw new RuntimeException("BNet.Retries must be greater than 0.");
 		}
-		final String bnetApiKey = readProp(props, "BNet.ApiKey"); // "hhhxv25rr3aemezs6a7ezydhthscsqqz";
 
-		final URI bnetApiBaseUrl = URI.create("https://" + bnetApiHost);
-		uriBNetAccountInfo = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https").path("account/user").build();
-		uriBNetAccountCharacters = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https").path("wow/user/characters")
+		final String bnetApiKey = readProp(props, "BNet.ApiKey"); // "hhhxv25rr3aemezs6a7ezydhthscsqqz";
+		uriBNetAccountInfo = UriBuilder.fromUri(bnetOAuthBaseUrl).scheme("https").path("account/user").build();
+		uriBNetAccountCharacters = UriBuilder.fromUri(bnetOAuthBaseUrl).scheme("https").path("wow/user/characters")
 				.build();
 		uriBNetGuildCharactersPattern = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https")
 				.path("wow/guild/{guildServer}/{guildName}").queryParam("fields", "members")
@@ -116,43 +121,52 @@ public class Config {
 				new BasicOAuth2ClientCredentials(bnetApiKey, bnetApiSecret), bnetOAuthRedirectTarget);
 	}
 
-	public @NonNull OAuth2Client oAuth2Client() {
+	public @Nonnull OAuth2Client oAuth2Client() {
 		return oAuth2Client;
 	}
 
-	public @NonNull OAuth2Scope oAuth2Scope() {
+	public @Nonnull OAuth2Scope oAuth2Scope() {
 		return new BasicScope("wow.profile");
 	}
 
-	public @NonNull String dbUrl() {
+	public @Nonnull String dbUrl() {
 		return dbUrl;
 	}
 
-	public @NonNull String dbUser() {
+	public @Nonnull String dbUser() {
 		return dbUser;
 	}
 
-	public @NonNull String dbPassword() {
+	public @Nonnull String dbPassword() {
 		return dbPassword;
 	}
 
-	public @NonNull List<String> allowedRemoteSystems() {
+	public @Nonnull List<String> allowedRemoteSystems() {
 		return allowedRemoteSystems;
 	}
 
-	public @NonNull URI uriBNetAccountInfo() {
+	public @Nonnull URI uriBNetAccountInfo() {
 		return uriBNetAccountInfo;
 	}
 
-	public @NonNull URI uriBNetAccountCharacters() {
+	public @Nonnull URI uriBNetAccountCharacters() {
 		return uriBNetAccountCharacters;
 	}
 
-	public @NonNull URI uriBNetGuildCharacters(final @NonNull String guildName, final @NonNull String guildServer) {
+	public @Nonnull URI uriBNetGuildCharacters(final @Nonnull String guildName, final @Nonnull String guildServer) {
 		return uriBNetGuildCharactersPattern.build(guildServer, guildName);
 	}
 
-	public @NonNull int bnetNumRetries() {
+	public @Nonnull OAuth2AccessToken token() throws ProtocolException, IOException, ProtocolError {
+		if (oAuthToken == null || !oAuthToken.expirationDate().before(DateTime.now())) {
+			oAuthToken = new ClientCredentialsGrant(oAuth2Client(), new BasicScope("scope"))
+					.accessToken(new HttpUrlConnectionExecutor());
+			Objects.requireNonNull(oAuthToken, "Received no new token");
+		}
+		return oAuthToken;
+	}
+
+	public @Nonnull int bnetNumRetries() {
 		return bnetNumRetries;
 	}
 }

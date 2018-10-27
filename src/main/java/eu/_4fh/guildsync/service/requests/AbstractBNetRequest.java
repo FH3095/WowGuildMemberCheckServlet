@@ -41,6 +41,10 @@ public abstract class AbstractBNetRequest<T> implements HttpRequest<T> {
 	public HttpResponseHandler<T> responseHandler(HttpResponse response)
 			throws IOException, ProtocolError, ProtocolException {
 		if (!HttpStatus.OK.equals(response.status())) {
+			org.slf4j.LoggerFactory.getLogger(this.getClass())
+					.info("Error making request " + String.valueOf(response.requestUri()) + ": "
+							+ String.valueOf(response.status().statusCode()) + " "
+							+ String.valueOf(response.status().reason()));
 			return FailResponseHandler.getInstance();
 		}
 

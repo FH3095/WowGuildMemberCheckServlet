@@ -247,6 +247,12 @@ public class SyncService {
 			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
 					.execute(config.uriBNetGuildCharacters(guildName, guildServer), new BNetGuildMembersRequest());
+			// For new Battle.net API
+			/*
+			List<BNetProfileWowCharacter> bnetGuildCharacters = executor.execute(
+					config.uriBNetGuildCharacters(guildName, guildServer),
+					new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()));
+			*/
 			List<WowCharacter> toDelCharacters = new LinkedList<>(db.charactersGetAll());
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
 				WowCharacter character = it.next();
