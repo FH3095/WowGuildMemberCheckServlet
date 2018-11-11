@@ -249,14 +249,14 @@ public class SyncService {
 			List<Long> changedAccounts = new ArrayList<>();
 			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 			// For old Battle.net API
+			/*
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
 					.execute(config.uriBNetGuildCharacters(guildName, guildServer), new BNetGuildMembersRequest());
+			*/
 			// For new Battle.net API
-			/*
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor.execute(
 					config.uriBNetGuildCharacters(guildName, guildServer),
 					new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()));
-			*/
 			List<WowCharacter> toDelCharacters = new LinkedList<>(db.charactersGetAll());
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
 				final WowCharacter character = it.next();
