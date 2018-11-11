@@ -149,11 +149,12 @@ public class DbWrapper {
 	}
 
 	public void characterAdd(final long accountId, final @NonNull WowCharacter newCharacter) {
-		final String sql = "INSERT INTO characters(account_id, name, server) VALUES (?, ?, ?)";
+		final String sql = "INSERT INTO characters(account_id, name, server, added) VALUES (?, ?, ?, ?)";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			stmt.setLong(1, accountId);
 			stmt.setString(2, newCharacter.getName());
 			stmt.setString(3, newCharacter.getServer());
+			stmt.setDate(4, DateHelper.calendarToSqlDate(DateHelper.getToday()));
 			stmt.executeUpdate();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -264,7 +265,7 @@ public class DbWrapper {
 
 	public List<WowCharacter> charactersGetByRemoteAccountId(final @NonNull String remoteSystemName,
 			final @NonNull Long remoteAccountId) {
-		final String sql = "SELECT name, server FROM characters WHERE "
+		final String sql = "SELECT name, server, added FROM characters WHERE "
 				+ "account_id IN (SELECT account_id FROM account_remote_ids WHERE remote_system_name = ? AND remote_id = ?) AND "
 				+ "account_id IN (" + guildIdSubQuery + ") ORDER BY id";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
@@ -277,7 +278,7 @@ public class DbWrapper {
 	}
 
 	public List<WowCharacter> charactersGetByAccountId(long accountId) {
-		final String sql = "SELECT name, server FROM characters WHERE account_id = ? AND account_id IN ("
+		final String sql = "SELECT name, server, added FROM characters WHERE account_id = ? AND account_id IN ("
 				+ guildIdSubQuery + ") ORDER BY id";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			stmt.setLong(1, accountId);
@@ -288,7 +289,7 @@ public class DbWrapper {
 	}
 
 	public List<WowCharacter> charactersGetAll() {
-		final String sql = "SELECT name, server FROM characters WHERE account_id IN (" + guildIdSubQuery
+		final String sql = "SELECT name, server, added FROM characters WHERE account_id IN (" + guildIdSubQuery
 				+ ") ORDER BY id";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			return Collections.unmodifiableList(characterResultSetToList(stmt.executeQuery()));
@@ -300,7 +301,7 @@ public class DbWrapper {
 	private List<WowCharacter> characterResultSetToList(final @NonNull ResultSet rs) throws SQLException {
 		List<WowCharacter> result = new ArrayList<>();
 		while (rs.next()) {
-			result.add(new WowCharacter(rs.getString(1), rs.getString(2)));
+			result.add(new WowCharacter(rs.getString(1), rs.getString(2), DateHelper.sqlDateToCalendar(rs.getDate(3))));
 		}
 		rs.close();
 		return Collections.unmodifiableList(result);

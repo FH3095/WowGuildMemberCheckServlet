@@ -1,21 +1,26 @@
 package eu._4fh.guildsync.data;
 
+import java.util.Calendar;
 import java.util.Objects;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import eu._4fh.guildsync.helper.DateHelper;
 
 @XmlRootElement
 public class WowCharacter {
 	private @NonNull String name;
 	private @NonNull String server;
+	private @NonNull Calendar addedDate;
 
-	public WowCharacter(@NonNull String name, @NonNull String server) {
+	public WowCharacter(final @NonNull String name, final @NonNull String server, final @NonNull Calendar addedDate) {
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(server);
+		Objects.requireNonNull(addedDate);
 		this.name = name;
 		this.server = server;
+		this.addedDate = (Calendar) addedDate.clone();
 	}
 
 	// For JAX-RS
@@ -23,6 +28,7 @@ public class WowCharacter {
 	private WowCharacter() {
 		name = "invalid";
 		server = "invalid";
+		addedDate = DateHelper.getToday();
 	}
 
 	public @NonNull String getName() {
@@ -31,6 +37,10 @@ public class WowCharacter {
 
 	public @NonNull String getServer() {
 		return server;
+	}
+
+	public @NonNull Calendar getAddedDate() {
+		return (Calendar) addedDate.clone();
 	}
 
 	@Override

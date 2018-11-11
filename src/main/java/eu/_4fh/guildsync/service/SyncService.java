@@ -104,7 +104,8 @@ public class SyncService {
 			if (!guildName.equals(character.getGuildName()) || !guildServer.equals(character.getGuildServer())) {
 				continue;
 			}
-			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer());
+			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
+					DateHelper.getToday());
 			if (!db.characterExists(accountId, newCharacter)) {
 				log.debug("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
 						+ accountId);
@@ -243,8 +244,11 @@ public class SyncService {
 		StringBuilder result = new StringBuilder();
 		try {
 			log.info("Updating characters from guild list for " + guildId);
+			final Calendar onlyDeleteCharactersAddedBefore = DateHelper.getToday();
+			onlyDeleteCharactersAddedBefore.add(Calendar.DATE, config.getAfterCharacterAddDontDeleteForDays() * -1);
 			List<Long> changedAccounts = new ArrayList<>();
 			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
+			// For old Battle.net API
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
 					.execute(config.uriBNetGuildCharacters(guildName, guildServer), new BNetGuildMembersRequest());
 			// For new Battle.net API
@@ -255,8 +259,8 @@ public class SyncService {
 			*/
 			List<WowCharacter> toDelCharacters = new LinkedList<>(db.charactersGetAll());
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
-				WowCharacter character = it.next();
-				if (bnetGuildCharacters.stream()
+				final WowCharacter character = it.next();
+				if (character.getAddedDate().before(onlyDeleteCharactersAddedBefore) && bnetGuildCharacters.stream()
 						.noneMatch(bnetCharacter -> character.getName().equals(bnetCharacter.getName())
 								&& character.getServer().equals(bnetCharacter.getServer()))) {
 					Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());

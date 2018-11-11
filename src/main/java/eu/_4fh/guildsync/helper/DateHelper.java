@@ -17,6 +17,12 @@ public class DateHelper {
 		return new java.sql.Date(cal.getTimeInMillis());
 	}
 
+	public static Calendar sqlDateToCalendar(java.sql.Date date) {
+		final Calendar cal = Calendar.getInstance();
+		cal.setTimeInMillis(date.getTime());
+		return cal;
+	}
+
 	public static Calendar getToday() {
 		Calendar today = Calendar.getInstance();
 		today.set(Calendar.HOUR_OF_DAY, 0);

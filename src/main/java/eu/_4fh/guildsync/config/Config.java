@@ -41,6 +41,7 @@ public class Config {
 
 	// Values from properties-File
 	private final @Nonnull int bnetNumRetries;
+	private final @Nonnull int afterCharacterAddDontDeleteForDays;
 
 	private final @Nonnull String dbUrl;
 	private final @Nonnull String dbUser;
@@ -85,6 +86,10 @@ public class Config {
 		bnetNumRetries = Integer.parseInt(readProp(props, "BNet.Retries"));
 		if (bnetNumRetries < 1) {
 			throw new RuntimeException("BNet.Retries must be greater than 0.");
+		}
+		afterCharacterAddDontDeleteForDays = Integer.parseInt(readProp(props, "AfterCharacterAddDontDeleteForDays"));
+		if (afterCharacterAddDontDeleteForDays < 1) {
+			throw new RuntimeException("AfterCharacterAddDontDeleteForDays must be greater than 0.");
 		}
 
 		final String bnetApiKey = readProp(props, "BNet.ApiKey"); // "hhhxv25rr3aemezs6a7ezydhthscsqqz";
@@ -168,5 +173,9 @@ public class Config {
 
 	public @Nonnull int bnetNumRetries() {
 		return bnetNumRetries;
+	}
+
+	public final int getAfterCharacterAddDontDeleteForDays() {
+		return afterCharacterAddDontDeleteForDays;
 	}
 }
