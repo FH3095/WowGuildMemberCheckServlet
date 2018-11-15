@@ -17,6 +17,7 @@ import org.dmfs.httpessentials.responsehandlers.FailResponseHandler;
 import org.dmfs.httpessentials.responsehandlers.StringResponseHandler;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractBNetRequest<T> implements HttpRequest<T> {
 
@@ -49,6 +50,7 @@ public abstract class AbstractBNetRequest<T> implements HttpRequest<T> {
 		}
 
 		String responseString = new StringResponseHandler("UTF-8").handleResponse(response);
+		LoggerFactory.getLogger(this.getClass()).debug("Got battle.net response: {}", responseString);
 		try {
 			JSONObject obj = new JSONObject(responseString);
 			return new HttpResponseHandler<T>() {

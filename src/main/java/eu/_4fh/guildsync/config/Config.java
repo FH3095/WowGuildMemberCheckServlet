@@ -94,7 +94,7 @@ public class Config {
 
 		final String bnetApiKey = readProp(props, "BNet.ApiKey"); // "hhhxv25rr3aemezs6a7ezydhthscsqqz";
 		uriBNetAccountInfo = UriBuilder.fromUri(bnetOAuthBaseUrl).scheme("https").path("oauth/userinfo").build();
-		uriBNetAccountCharacters = UriBuilder.fromUri(bnetOAuthBaseUrl).scheme("https").path("wow/user/characters")
+		uriBNetAccountCharacters = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https").path("wow/user/characters")
 				.build();
 		uriBNetGuildCharactersPattern = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https")
 				.path("wow/guild/{guildServer}/{guildName}").queryParam("fields", "members")

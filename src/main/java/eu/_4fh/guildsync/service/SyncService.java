@@ -107,7 +107,7 @@ public class SyncService {
 			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
 					DateHelper.getToday());
 			if (!db.characterExists(accountId, newCharacter)) {
-				log.debug("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
+				log.info("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
 						+ accountId);
 				db.characterAdd(accountId, newCharacter);
 				hasNewCharacter = true;
