@@ -98,7 +98,7 @@ public class Config {
 				.build();
 		uriBNetGuildCharactersPattern = UriBuilder.fromUri(bnetApiBaseUrl).scheme("https")
 				.path("wow/guild/{guildServer}/{guildName}").queryParam("fields", "members")
-				.queryParam("locale", bnetApiLocale).queryParam("apikey", bnetApiKey);
+				.queryParam("locale", bnetApiLocale);
 
 		final List<String> remoteSystems = new LinkedList<String>(
 				Arrays.asList(readProp(props, "Remote.Systems").split(" ")));
