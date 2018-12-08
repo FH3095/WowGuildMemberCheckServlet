@@ -168,8 +168,7 @@ public class Config {
 					.accessToken(new HttpUrlConnectionExecutor());
 			Objects.requireNonNull(oAuthToken, "Received no new token");
 			log.info("Requested new token, got: {} as {} for {} valid until {}", oAuthToken.accessToken(),
-					oAuthToken.tokenType(), Objects.toString(oAuthToken.scope()),
-					oAuthToken.expirationDate().toString());
+					oAuthToken.tokenType(), oAuthToken.scope().toString(), oAuthToken.expirationDate().toString());
 		}
 		return oAuthToken;
 	}
