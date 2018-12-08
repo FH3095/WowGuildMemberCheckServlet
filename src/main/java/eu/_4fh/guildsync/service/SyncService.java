@@ -261,8 +261,8 @@ public class SyncService {
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
 				final WowCharacter character = it.next();
 				if (character.getAddedDate().before(onlyDeleteCharactersAddedBefore) && bnetGuildCharacters.stream()
-						.noneMatch(bnetCharacter -> character.getName().equals(bnetCharacter.getName())
-								&& character.getServer().equals(bnetCharacter.getServer()))) {
+						.noneMatch(bnetCharacter -> character.getName().equalsIgnoreCase(bnetCharacter.getName())
+								&& character.getServer().equalsIgnoreCase(bnetCharacter.getServer()))) {
 					Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
 					if (accountId == null) {
 						throw new IllegalStateException("Cant find account-id for character " + character.getName()
