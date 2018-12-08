@@ -167,6 +167,9 @@ public class Config {
 			oAuthToken = new ClientCredentialsGrant(oAuth2Client(), new BasicScope("scope"))
 					.accessToken(new HttpUrlConnectionExecutor());
 			Objects.requireNonNull(oAuthToken, "Received no new token");
+			log.info("Requested new token, got: {} as {} for {} valid until {}", oAuthToken.accessToken(),
+					oAuthToken.tokenType(), Objects.toString(oAuthToken.scope()),
+					oAuthToken.expirationDate().toString());
 		}
 		return oAuthToken;
 	}
