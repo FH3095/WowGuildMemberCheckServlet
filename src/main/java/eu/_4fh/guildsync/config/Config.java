@@ -163,6 +163,10 @@ public class Config {
 	}
 
 	public @Nonnull OAuth2AccessToken token() throws ProtocolException, IOException, ProtocolError {
+		if (oAuthToken != null) {
+			log.debug("Token expiration: Token {} expires {}", oAuthToken.accessToken(),
+					oAuthToken.expirationDate().toString());
+		}
 		if (oAuthToken == null || !oAuthToken.expirationDate().before(DateTime.now())) {
 			oAuthToken = new ClientCredentialsGrant(oAuth2Client(), new BasicScope("scope"))
 					.accessToken(new HttpUrlConnectionExecutor());
