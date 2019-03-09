@@ -15,9 +15,13 @@ public class BNetGuildMembersRequest extends AbstractBNetRequest<List<BNetProfil
 		List<BNetProfileWowCharacter> result = new ArrayList<>();
 		JSONArray array = guildObj.getJSONArray("members");
 		for (int i = 0; i < array.length(); ++i) {
-			JSONObject obj = array.getJSONObject(i).getJSONObject("character");
+			final JSONObject obj = array.getJSONObject(i).getJSONObject("character");
+			Integer rank = array.getJSONObject(i).optInt("rank", Integer.MAX_VALUE);
+			if (rank >= Integer.MAX_VALUE) {
+				rank = null;
+			}
 			BNetProfileWowCharacter character = new BNetProfileWowCharacter(obj.getString("name"),
-					obj.getString("realm"), obj.optString("guild"), obj.optString("guildRealm"));
+					obj.getString("realm"), obj.optString("guild"), obj.optString("guildRealm"), rank);
 			result.add(character);
 		}
 

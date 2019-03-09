@@ -12,14 +12,17 @@ import eu._4fh.guildsync.helper.DateHelper;
 public class WowCharacter {
 	private @NonNull String name;
 	private @NonNull String server;
+	private @NonNull int rank;
 	private @NonNull Calendar addedDate;
 
-	public WowCharacter(final @NonNull String name, final @NonNull String server, final @NonNull Calendar addedDate) {
+	public WowCharacter(final @NonNull String name, final @NonNull String server, final @NonNull int rank,
+			final @NonNull Calendar addedDate) {
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(server);
 		Objects.requireNonNull(addedDate);
 		this.name = name;
 		this.server = server;
+		this.rank = rank;
 		this.addedDate = (Calendar) addedDate.clone();
 	}
 
@@ -28,6 +31,7 @@ public class WowCharacter {
 	private WowCharacter() {
 		name = "invalid";
 		server = "invalid";
+		rank = Short.MAX_VALUE;
 		addedDate = DateHelper.getToday();
 	}
 
@@ -37,6 +41,10 @@ public class WowCharacter {
 
 	public @NonNull String getServer() {
 		return server;
+	}
+
+	public @NonNull int getRank() {
+		return rank;
 	}
 
 	public @NonNull Calendar getAddedDate() {

@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 
 import org.dmfs.httpessentials.client.HttpRequestExecutor;
 import org.dmfs.httpessentials.decoration.HeaderDecorated;
@@ -104,7 +105,7 @@ public class SyncService {
 			if (!guildName.equals(character.getGuildName()) || !guildServer.equals(character.getGuildServer())) {
 				continue;
 			}
-			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
+			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(), Short.MAX_VALUE,
 					DateHelper.getToday());
 			if (!db.characterExists(accountId, newCharacter)) {
 				log.info("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
@@ -259,18 +260,29 @@ public class SyncService {
 					new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()));
 			List<WowCharacter> toDelCharacters = new LinkedList<>(db.charactersGetAll());
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
-				final WowCharacter character = it.next();
-				if (character.getAddedDate().before(onlyDeleteCharactersAddedBefore) && bnetGuildCharacters.stream()
-						.noneMatch(bnetCharacter -> character.getName().equalsIgnoreCase(bnetCharacter.getName())
-								&& character.getServer().equalsIgnoreCase(bnetCharacter.getServer()))) {
-					Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
-					if (accountId == null) {
-						throw new IllegalStateException("Cant find account-id for character " + character.getName()
-								+ "-" + character.getServer());
-					}
+				final @NonNull WowCharacter character = it.next();
+				final Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
+				if (accountId == null) {
+					throw new IllegalStateException(
+							"Cant find account-id for character " + character.getName() + "-" + character.getServer());
+				}
+
+				final @CheckForNull BNetProfileWowCharacter matchingBnetCharacter = bnetGuildCharacters.stream()
+						.filter(bnetCharacter -> character.getName().equalsIgnoreCase(bnetCharacter.getName())
+								&& character.getServer().equalsIgnoreCase(bnetCharacter.getServer()))
+						.findFirst().orElse(null);
+				if (character.getAddedDate().before(onlyDeleteCharactersAddedBefore) && matchingBnetCharacter == null) {
 					log.info("Delete no longer existing character " + character.getName() + "-" + character.getServer()
 							+ " from account " + accountId);
 					db.characterDelete(accountId, character);
+					changedAccounts.add(accountId);
+				} else if (matchingBnetCharacter != null
+						&& !Objects.equals(character.getRank(), matchingBnetCharacter.getGuildRank())) {
+					final @CheckForNull Integer newRank = matchingBnetCharacter.getGuildRank();
+					if (newRank == null) {
+						throw new NullPointerException("New rank is NULL");
+					}
+					db.characterUpdateRank(character, newRank);
 					changedAccounts.add(accountId);
 				}
 			}

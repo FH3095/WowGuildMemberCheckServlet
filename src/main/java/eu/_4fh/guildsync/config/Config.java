@@ -167,7 +167,7 @@ public class Config {
 			log.debug("Token expiration: Token {} expires {}", oAuthToken.accessToken(),
 					oAuthToken.expirationDate().toString());
 		}
-		if (oAuthToken == null || !oAuthToken.expirationDate().before(DateTime.now())) {
+		if (oAuthToken == null || oAuthToken.expirationDate().before(DateTime.now())) {
 			oAuthToken = new ClientCredentialsGrant(oAuth2Client(), new BasicScope("scope"))
 					.accessToken(new HttpUrlConnectionExecutor());
 			Objects.requireNonNull(oAuthToken, "Received no new token");

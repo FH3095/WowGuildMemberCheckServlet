@@ -166,8 +166,8 @@ public class Auth {
 
 			log.info("Auth finished for " + authInformations.remoteAccountId + "@" + authInformations.remoteSystemName
 					+ ". Token: " + token.accessToken() + " valid until " + token.expirationDate().toString() + " for "
-					+ token.scope().toString() + " as " + token.tokenType() + " ; Redirecting to "
-					+ authInformations.redirectTo);
+					+ token.scope().toString() + " as " + token.tokenType() + " with refresh "
+					+ Boolean.toString(token.hasRefreshToken()) + " ; Redirecting to " + authInformations.redirectTo);
 			new SyncService(authInformations.guildId).addOrUpdateAccount(token, authInformations.remoteSystemName,
 					authInformations.remoteAccountId);
 			return Response.seeOther(authInformations.redirectTo).build();
