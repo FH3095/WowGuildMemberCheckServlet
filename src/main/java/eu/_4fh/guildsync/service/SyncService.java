@@ -105,8 +105,8 @@ public class SyncService {
 			if (!guildName.equals(character.getGuildName()) || !guildServer.equals(character.getGuildServer())) {
 				continue;
 			}
-			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(), Short.MAX_VALUE,
-					DateHelper.getToday());
+			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
+					character.getGuildRank(), DateHelper.getToday());
 			if (!db.characterExists(accountId, newCharacter)) {
 				log.info("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
 						+ accountId);
