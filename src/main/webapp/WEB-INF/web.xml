@@ -9,16 +9,22 @@
 		<welcome-file>index.jsp</welcome-file>
 	</welcome-file-list>
 	<servlet>
-		<servlet-name>REST Service</servlet-name>
+		<!--
+			Name muss javax.ws.rs.core.Application sein. Dann wird die ganze Applikation nach Annotations gescannt.
+			Das scannen mit der Variante der Angabe von jersey.config.server.provider.packages funktioniert nicht in WAR-Files.
+		-->
+		<servlet-name>javax.ws.rs.core.Application</servlet-name>
+		<!--<servlet-name>REST Service</servlet-name>
 		<servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
 		<init-param>
 			<param-name>jersey.config.server.provider.packages</param-name>
 			<param-value>eu._4fh.guildsync.rest</param-value>
-		</init-param>
+		</init-param>-->
 		<load-on-startup>1</load-on-startup>
 	</servlet>
 	<servlet-mapping>
-		<servlet-name>REST Service</servlet-name>
+		<!--<servlet-name>REST Service</servlet-name>-->
+		<servlet-name>javax.ws.rs.core.Application</servlet-name>
 		<url-pattern>/rest/*</url-pattern>
 	</servlet-mapping>
 </web-app>
