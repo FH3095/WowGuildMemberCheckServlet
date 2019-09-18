@@ -3,7 +3,11 @@ package eu._4fh.guildsync.config;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.sql.Driver;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,6 +80,14 @@ public class Config {
 			throw new RuntimeException("Cant load config from file " + configFile.getAbsolutePath(), e);
 		}
 
+		try {
+			final String dbDriverClass = readProp(props, "DB.Driver");
+			final Driver driver = (Driver) Class.forName(dbDriverClass).getDeclaredConstructor().newInstance();
+			DriverManager.registerDriver(driver);
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
+				| NoSuchMethodException | SecurityException | ClassNotFoundException | SQLException e) {
+			throw new RuntimeException(e);
+		}
 		dbUrl = readProp(props, "DB.Url");
 		dbUser = readProp(props, "DB.User");
 		dbPassword = readProp(props, "DB.Password");
