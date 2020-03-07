@@ -9,15 +9,15 @@ public class DateHelper {
 		// Empty private constructor
 	}
 
-	public static java.sql.Date dateTimeToSqlDate(DateTime dt) {
-		return new java.sql.Date(dt.getTimestamp());
+	public static java.sql.Timestamp dateTimeToSqlDate(DateTime dt) {
+		return new java.sql.Timestamp(dt.getTimestamp());
 	}
 
-	public static java.sql.Date calendarToSqlDate(Calendar cal) {
-		return new java.sql.Date(cal.getTimeInMillis());
+	public static java.sql.Timestamp calendarToSqlDate(Calendar cal) {
+		return new java.sql.Timestamp(cal.getTimeInMillis());
 	}
 
-	public static Calendar sqlDateToCalendar(java.sql.Date date) {
+	public static Calendar sqlDateToCalendar(java.sql.Timestamp date) {
 		final Calendar cal = Calendar.getInstance();
 		cal.setTimeInMillis(date.getTime());
 		return cal;

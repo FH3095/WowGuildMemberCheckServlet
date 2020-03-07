@@ -56,7 +56,7 @@ CREATE TABLE `characters` (
   `name` varchar(32) COLLATE utf8mb4_bin NOT NULL,
   `server` varchar(32) COLLATE utf8mb4_bin NOT NULL,
   `rank` int(11) NOT NULL DEFAULT 32767,
-  `added` date NOT NULL
+  `added` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --

@@ -13,12 +13,15 @@ public class BNetProfileWowCharactersRequest extends AbstractBNetRequest<List<BN
 	@Override
 	protected List<BNetProfileWowCharacter> convertJsonToObject(JSONObject arrayObj) {
 		List<BNetProfileWowCharacter> result = new ArrayList<>();
-		JSONArray array = arrayObj.getJSONArray("characters");
-		for (int i = 0; i < array.length(); ++i) {
-			JSONObject obj = array.getJSONObject(i);
-			BNetProfileWowCharacter character = new BNetProfileWowCharacter(obj.getString("name"),
-					obj.getString("realm"), Integer.MAX_VALUE);
-			result.add(character);
+		final JSONArray wowAccounts = arrayObj.getJSONArray("wow_accounts");
+		for (int i = 0; i < wowAccounts.length(); ++i) {
+			final JSONArray characters = wowAccounts.getJSONObject(i).getJSONArray("characters");
+			for (int j = 0; j < characters.length(); ++j) {
+				final JSONObject obj = characters.getJSONObject(j);
+				final BNetProfileWowCharacter character = new BNetProfileWowCharacter(obj.getString("name"),
+						obj.getJSONObject("realm").getString("name"), Integer.MAX_VALUE);
+				result.add(character);
+			}
 		}
 
 		return result;
