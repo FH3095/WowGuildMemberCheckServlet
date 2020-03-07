@@ -10,7 +10,7 @@ public class DateHelper {
 	}
 
 	public static java.sql.Date dateTimeToSqlDate(DateTime dt) {
-		return new java.sql.Date(dt.toAllDay().getTimestamp());
+		return new java.sql.Date(dt.getTimestamp());
 	}
 
 	public static java.sql.Date calendarToSqlDate(Calendar cal) {
@@ -23,12 +23,8 @@ public class DateHelper {
 		return cal;
 	}
 
-	public static Calendar getToday() {
+	public static Calendar getNow() {
 		Calendar today = Calendar.getInstance();
-		today.set(Calendar.HOUR_OF_DAY, 0);
-		today.set(Calendar.MINUTE, 0);
-		today.set(Calendar.SECOND, 0);
-		today.set(Calendar.MILLISECOND, 0);
 		return today;
 	}
 }

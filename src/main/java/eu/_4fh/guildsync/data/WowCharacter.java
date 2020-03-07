@@ -3,20 +3,20 @@ package eu._4fh.guildsync.data;
 import java.util.Calendar;
 import java.util.Objects;
 
+import javax.annotation.Nonnull;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.helper.DateHelper;
 
 @XmlRootElement
 public class WowCharacter {
-	private @NonNull String name;
-	private @NonNull String server;
-	private @NonNull int rank;
-	private @NonNull Calendar addedDate;
+	private @Nonnull String name;
+	private @Nonnull String server;
+	private @Nonnull int rank;
+	private @Nonnull Calendar addedDate;
 
-	public WowCharacter(final @NonNull String name, final @NonNull String server, final @NonNull int rank,
-			final @NonNull Calendar addedDate) {
+	public WowCharacter(final @Nonnull String name, final @Nonnull String server, final @Nonnull int rank,
+			final @Nonnull Calendar addedDate) {
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(server);
 		Objects.requireNonNull(addedDate);
@@ -32,32 +32,28 @@ public class WowCharacter {
 		name = "invalid";
 		server = "invalid";
 		rank = Short.MAX_VALUE;
-		addedDate = DateHelper.getToday();
+		addedDate = DateHelper.getNow();
 	}
 
-	public @NonNull String getName() {
+	public @Nonnull String getName() {
 		return name;
 	}
 
-	public @NonNull String getServer() {
+	public @Nonnull String getServer() {
 		return server;
 	}
 
-	public @NonNull int getRank() {
+	public @Nonnull int getRank() {
 		return rank;
 	}
 
-	public @NonNull Calendar getAddedDate() {
+	public @Nonnull Calendar getAddedDate() {
 		return (Calendar) addedDate.clone();
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + name.hashCode();
-		result = prime * result + server.hashCode();
-		return result;
+		return Objects.hash(name, server);
 	}
 
 	@Override
@@ -65,21 +61,11 @@ public class WowCharacter {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
 		if (!(obj instanceof WowCharacter)) {
 			return false;
 		}
-
 		WowCharacter other = (WowCharacter) obj;
-		if (!name.equals(other.name)) {
-			return false;
-		}
-		if (!server.equals(other.server)) {
-			return false;
-		}
-		return true;
+		return Objects.equals(name, other.name) && Objects.equals(server, other.server);
 	}
 
 	@Override

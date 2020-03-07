@@ -1,12 +1,12 @@
 package eu._4fh.guildsync.data;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 
 public class BNetProfileInfo {
 	private final long id;
-	private final @NonNull String battleTag;
+	private final @Nonnull String battleTag;
 
-	public BNetProfileInfo(final long id, final @NonNull String battleTag) {
+	public BNetProfileInfo(final long id, final @Nonnull String battleTag) {
 		this.id = id;
 		this.battleTag = battleTag;
 	}
@@ -15,7 +15,7 @@ public class BNetProfileInfo {
 		return id;
 	}
 
-	public @NonNull String getBattleTag() {
+	public @Nonnull String getBattleTag() {
 		return battleTag;
 	}
 }

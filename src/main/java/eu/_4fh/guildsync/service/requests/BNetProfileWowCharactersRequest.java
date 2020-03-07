@@ -17,7 +17,7 @@ public class BNetProfileWowCharactersRequest extends AbstractBNetRequest<List<BN
 		for (int i = 0; i < array.length(); ++i) {
 			JSONObject obj = array.getJSONObject(i);
 			BNetProfileWowCharacter character = new BNetProfileWowCharacter(obj.getString("name"),
-					obj.getString("realm"), obj.optString("guild"), obj.optString("guildRealm"), Integer.MAX_VALUE);
+					obj.getString("realm"), Integer.MAX_VALUE);
 			result.add(character);
 		}
 

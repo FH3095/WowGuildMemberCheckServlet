@@ -2,13 +2,18 @@ package eu._4fh.guildsync.service;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 import org.dmfs.httpessentials.client.HttpRequestExecutor;
 import org.dmfs.httpessentials.decoration.HeaderDecorated;
@@ -23,90 +28,74 @@ import org.dmfs.oauth2.client.http.decorators.BearerAuthenticatedRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.config.Config;
 import eu._4fh.guildsync.data.Account;
 import eu._4fh.guildsync.data.BNetProfileInfo;
 import eu._4fh.guildsync.data.BNetProfileWowCharacter;
-import eu._4fh.guildsync.data.RemoteCommand;
-import eu._4fh.guildsync.data.RemoteCommand.Commands;
 import eu._4fh.guildsync.data.WowCharacter;
 import eu._4fh.guildsync.db.DbWrapper;
 import eu._4fh.guildsync.db.Transaction;
 import eu._4fh.guildsync.helper.DateHelper;
-import eu._4fh.guildsync.helper.Pair;
 import eu._4fh.guildsync.service.requests.BNetGuildMembersRequest;
 import eu._4fh.guildsync.service.requests.BNetProfileInfoRequest;
 import eu._4fh.guildsync.service.requests.BNetProfileWowCharactersRequest;
 import eu._4fh.guildsync.service.requests.TokenHeaderDecorator;
 
+@ParametersAreNonnullByDefault
 public class SyncService {
 	private static final Logger log = LoggerFactory.getLogger(SyncService.class);
-	private static final @NonNull Config config = Config.getInstance();
+	private static final @Nonnull Config config = Config.getInstance();
 
-	private final @NonNull DbWrapper db;
-	private final @NonNull long guildId;
-	private final String guildName;
-	private final String guildServer;
+	private final @Nonnull DbWrapper db;
+	private final @Nonnull Set<BNetProfileWowCharacter> bnetGuildCharacters;
 
-	public SyncService(final @NonNull long guildId) {
-		this.guildId = guildId;
-		db = new DbWrapper(guildId);
-		Pair<String, String> guildNameAndServer = db.guildGetNameAndServer();
-		guildName = guildNameAndServer.getValue1();
-		guildServer = guildNameAndServer.getValue2();
-	}
-
-	private void updateAccount(long accountId, @NonNull String remoteSystem, long remoteId, OAuth2AccessToken token,
-			long battleNetId, List<BNetProfileWowCharacter> characters) {
-		try (Transaction transaction = Transaction.getTransaction()) {
-			db.accountUpdateById(accountId, battleNetId, token);
-
-			boolean addedRemoteAccount = false;
-			if (db.remoteAccountIdGetByAccountId(accountId, remoteSystem) == null) {
-				db.remoteAccountAdd(accountId, remoteSystem, remoteId);
-				addedRemoteAccount = true;
-			}
-
-			boolean hasNewCharacter = addCharacters(accountId, characters);
-			if (hasNewCharacter) {
-				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
-			} else if (addedRemoteAccount) {
-				db.remoteCommandAdd(remoteSystem, accountId, RemoteCommand.Commands.ACC_UPDATE);
-			}
-			transaction.commit();
-		} catch (SQLException e) {
+	public SyncService() {
+		db = new DbWrapper();
+		try {
+			bnetGuildCharacters = Collections.unmodifiableSet(
+					new HashSet<>(new HttpUrlConnectionExecutor().execute(config.uriBNetGuildCharacters(),
+							new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()))));
+		} catch (IOException | ProtocolError | ProtocolException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	private long addAccount(@NonNull String remoteSystem, @NonNull long remoteId, OAuth2AccessToken token,
-			long battleNetId, List<BNetProfileWowCharacter> characters) {
-		try (Transaction transaction = Transaction.getTransaction()) {
-			long newAccountId = db.accountAdd(battleNetId, token);
+	private @Nonnull List<BNetProfileWowCharacter> removeNonGuildCharacters(
+			final List<BNetProfileWowCharacter> otherCharacters) {
+		final LinkedList<BNetProfileWowCharacter> result = new LinkedList<>(otherCharacters);
 
-			db.remoteAccountAdd(newAccountId, remoteSystem, remoteId);
-
-			boolean charactersAdded = addCharacters(newAccountId, characters);
-			if (charactersAdded) {
-				createRemoteCommands(newAccountId, RemoteCommand.Commands.ACC_UPDATE);
+		for (final ListIterator<BNetProfileWowCharacter> it = result.listIterator(); it.hasNext();) {
+			final BNetProfileWowCharacter character = it.next();
+			if (!bnetGuildCharacters.contains(character)) {
+				it.remove();
 			}
-			transaction.commit();
-			return newAccountId;
-		} catch (SQLException e) {
-			throw new RuntimeException(e);
+		}
+
+		return result;
+	}
+
+	private long addAccount(@Nonnull String remoteSystem, @Nonnull long remoteId, OAuth2AccessToken token,
+			long battleNetId) {
+		long newAccountId = db.accountAdd(battleNetId, token);
+		db.remoteAccountAdd(newAccountId, remoteSystem, remoteId);
+
+		return newAccountId;
+	}
+
+	private void updateAccount(long accountId, @Nonnull String remoteSystem, long remoteId, OAuth2AccessToken token,
+			long battleNetId) {
+		db.accountUpdateById(accountId, battleNetId, token);
+
+		if (db.remoteAccountIdGetByAccountId(accountId, remoteSystem) == null) {
+			db.remoteAccountAdd(accountId, remoteSystem, remoteId);
 		}
 	}
 
-	private boolean addCharacters(long accountId, List<BNetProfileWowCharacter> characters) {
+	private boolean addCharacters(final long accountId, final List<BNetProfileWowCharacter> characters) {
 		boolean hasNewCharacter = false;
 		for (BNetProfileWowCharacter character : characters) {
-			if (!guildName.equals(character.getGuildName()) || !guildServer.equals(character.getGuildServer())) {
-				continue;
-			}
-			WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
-					character.getGuildRank(), DateHelper.getToday());
+			final WowCharacter newCharacter = new WowCharacter(character.getName(), character.getServer(),
+					character.getGuildRank(), DateHelper.getNow());
 			if (!db.characterExists(accountId, newCharacter)) {
 				log.info("Add character " + newCharacter.getName() + "-" + newCharacter.getServer() + " for "
 						+ accountId);
@@ -117,21 +106,11 @@ public class SyncService {
 		return hasNewCharacter;
 	}
 
-	private void createRemoteCommands(final @NonNull long accountId, final @NonNull Commands command) {
-		for (String remoteSystemName : config.allowedRemoteSystems()) {
-			Long remoteAccountId = db.remoteAccountIdGetByAccountId(accountId, remoteSystemName);
-			if (remoteAccountId == null) {
-				continue;
-			}
-			db.remoteCommandAdd(remoteSystemName, accountId, command);
-		}
-	}
-
-	public long addOrUpdateAccount(final @NonNull OAuth2AccessToken token, final @NonNull String remoteSystem,
-			final @NonNull long remoteId) {
+	public long addOrUpdateAccount(final @Nonnull OAuth2AccessToken token, final @Nonnull String remoteSystem,
+			final @Nonnull long remoteId) {
 		HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
-		try {
-			BNetProfileInfo info = executor.execute(config.uriBNetAccountInfo(),
+		try (final Transaction trans = Transaction.getTransaction()) {
+			final BNetProfileInfo info = executor.execute(config.uriBNetAccountInfo(),
 					new BearerAuthenticatedRequest<>(new BNetProfileInfoRequest(), token));
 			List<BNetProfileWowCharacter> characters = executor.execute(config.uriBNetAccountCharacters(),
 					new BearerAuthenticatedRequest<>(new BNetProfileWowCharactersRequest(), token));
@@ -139,7 +118,11 @@ public class SyncService {
 			Long accountId = null;
 			accountId = db.accountIdGetByBattleNetId(info.getId());
 			if (accountId == null) {
-				log.debug("Account not found by id " + info.getId() + ", search by characters");
+				log.debug("Account not found by id, search by remote account " + remoteSystem + ":" + remoteId);
+				accountId = db.accountIdGetByRemoteAccount(remoteSystem, remoteId);
+			}
+			if (accountId == null) {
+				log.debug("Account not found by id remote system, search by characters");
 				for (BNetProfileWowCharacter character : characters) {
 					accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
 					if (accountId != null) {
@@ -150,91 +133,33 @@ public class SyncService {
 			}
 			log.debug("Account-ID: " + String.valueOf(accountId));
 
+			characters = removeNonGuildCharacters(characters);
+
 			if (accountId == null) {
-				accountId = addAccount(remoteSystem, remoteId, token, info.getId(), characters);
+				accountId = addAccount(remoteSystem, remoteId, token, info.getId());
 			} else {
-				updateAccount(accountId, remoteSystem, remoteId, token, info.getId(), characters);
+				updateAccount(accountId, remoteSystem, remoteId, token, info.getId());
 			}
+			if (!characters.isEmpty()) {
+				addCharacters(accountId, characters);
+			}
+
+			trans.commit();
 			return accountId;
-		} catch (IOException | ProtocolError | ProtocolException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	public long addOrUpdateAccount(final @NonNull String remoteSystemName, final @NonNull long remoteAccountId,
-			final @NonNull WowCharacter character) {
-		try (Transaction transaction = Transaction.getTransaction()) {
-			@CheckForNull
-			Long accountId = null;
-			final @NonNull boolean accountExists;
-			final @NonNull boolean remoteAccountExists;
-			final @NonNull boolean charExists;
-			{
-				final @CheckForNull Long accountIdByChar = db.accountIdGetByCharacter(character.getName(),
-						character.getServer());
-				final @CheckForNull Long accountIdByRemote = db.accountIdGetByRemoteAccount(remoteSystemName,
-						remoteAccountId);
-				if (accountIdByChar != null && accountIdByRemote != null
-						&& !accountIdByChar.equals(accountIdByRemote)) {
-					throw new IllegalArgumentException(
-							"Characters " + character.toString() + " already exists and belongs to " + accountIdByChar
-									+ " but should be added to " + accountIdByRemote);
-				}
-				accountId = accountIdByChar != null ? accountIdByChar : accountIdByRemote;
-				accountExists = accountId != null;
-				remoteAccountExists = accountIdByRemote != null;
-				charExists = accountIdByChar != null;
-			}
-
-			// Account dont exists -> Create
-			if (accountId == null) {
-				// Wenn es den Char nicht gibt, gibt es den Account auch nicht -> Beides anlegen
-				accountId = db.accountAdd();
-				log.info("Added new account " + accountId + " for character " + character.toString() + " to remote "
-						+ remoteAccountId + "@" + remoteSystemName);
-			}
-			if (!remoteAccountExists) {
-				// Den Account samt Char gab es schon. Nur die Verknüpfung zur RemoteId hinzufügen.
-				db.remoteAccountAdd(accountId, remoteSystemName, remoteAccountId);
-				// Der Account samt Char ist nur für ein System neu. Dieses System zum Update zwingen.
-				if (charExists) {
-					db.remoteCommandAdd(remoteSystemName, accountId, RemoteCommand.Commands.ACC_UPDATE);
-				}
-				log.info("Added account " + accountId + " with character " + character.toString() + " to remote "
-						+ remoteAccountId + "@" + remoteSystemName);
-			}
-			if (!charExists) {
-				db.characterAdd(accountId, character);
-				createRemoteCommands(accountId, RemoteCommand.Commands.ACC_UPDATE);
-			}
-
-			log.info("Added char. " + (accountExists ? "" : "New ") + "account: " + accountId + " ; "
-					+ (remoteAccountExists ? "" : "New ") + "remote account: " + remoteAccountId + "@"
-					+ remoteSystemName + " ; " + (charExists ? "" : "New ") + "character: " + character.toString());
-
-			transaction.commit();
-			return accountId;
-		} catch (SQLException e) {
+		} catch (IOException | ProtocolError | ProtocolException | SQLException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	public String updateAndDeleteAccounts() {
 		StringBuilder result = new StringBuilder();
-		try (Transaction trans = Transaction.getTransaction()) {
+		try (final Transaction trans = Transaction.getTransaction()) {
 			result.append(updateAccountsFromTokens());
 			result.append(updateAccountsFromGuildList());
-			log.info("Deleted " + db.accountsDeleteWhenUnused(DateHelper.getToday()) + " unused accounts for guild "
-					+ guildId);
-			db.guildUpdateLastRefresh(DateHelper.getToday());
-
-			Calendar longUnusedDate = DateHelper.getToday();
-			longUnusedDate.roll(Calendar.MONTH, -1);
-			db.remoteCommandsDeleteLongUnused(longUnusedDate);
-
+			log.info("Deleted " + db.accountsDeleteWhenUnused(DateHelper.getNow()) + " unused accounts");
 			trans.commit();
 		} catch (SQLException e) {
-			log.error("Cant refresh chars for guild " + guildId, e);
+			log.error("Cant refresh chars for guild", e);
 			throw new RuntimeException(e);
 		}
 
@@ -244,23 +169,18 @@ public class SyncService {
 	private String updateAccountsFromGuildList() {
 		StringBuilder result = new StringBuilder();
 		try {
-			log.info("Updating characters from guild list for " + guildId);
-			final Calendar onlyDeleteCharactersAddedBefore = DateHelper.getToday();
-			onlyDeleteCharactersAddedBefore.add(Calendar.DATE, config.getAfterCharacterAddDontDeleteForDays() * -1);
-			List<Long> changedAccounts = new ArrayList<>();
-			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
+			log.info("Updating characters from guild list");
+			final Calendar onlyDeleteCharactersAddedBefore = DateHelper.getNow();
+			onlyDeleteCharactersAddedBefore.add(Calendar.DATE, config.afterCharacterAddDontDeleteForDays() * -1);
 			// For old Battle.net API
 			/*
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
 					.execute(config.uriBNetGuildCharacters(guildName, guildServer), new BNetGuildMembersRequest());
 			*/
 			// For new Battle.net API
-			List<BNetProfileWowCharacter> bnetGuildCharacters = executor.execute(
-					config.uriBNetGuildCharacters(guildName, guildServer),
-					new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()));
 			List<WowCharacter> toDelCharacters = new LinkedList<>(db.charactersGetAll());
 			for (ListIterator<WowCharacter> it = toDelCharacters.listIterator(); it.hasNext();) {
-				final @NonNull WowCharacter character = it.next();
+				final @Nonnull WowCharacter character = it.next();
 				final Long accountId = db.accountIdGetByCharacter(character.getName(), character.getServer());
 				if (accountId == null) {
 					throw new IllegalStateException(
@@ -275,19 +195,11 @@ public class SyncService {
 					log.info("Delete no longer existing character " + character.getName() + "-" + character.getServer()
 							+ " from account " + accountId);
 					db.characterDelete(accountId, character);
-					changedAccounts.add(accountId);
 				} else if (matchingBnetCharacter != null
 						&& !Objects.equals(character.getRank(), matchingBnetCharacter.getGuildRank())) {
-					final @CheckForNull Integer newRank = matchingBnetCharacter.getGuildRank();
-					if (newRank == null) {
-						throw new NullPointerException("New rank is NULL");
-					}
+					final int newRank = matchingBnetCharacter.getGuildRank();
 					db.characterUpdateRank(character, newRank);
-					changedAccounts.add(accountId);
 				}
-			}
-			for (Long changedAccount : changedAccounts) {
-				createRemoteCommands(changedAccount, RemoteCommand.Commands.ACC_UPDATE);
 			}
 		} catch (Throwable t) {
 			log.error("Cant update characters from guild list: ", t);
@@ -298,7 +210,7 @@ public class SyncService {
 
 	private String updateAccountsFromTokens() {
 		StringBuilder result = new StringBuilder();
-		List<Account> toUpdateAccounts = db.accountsGetWithTokenValidUntil(DateHelper.getToday());
+		List<Account> toUpdateAccounts = db.accountsGetWithTokenValidUntil(DateHelper.getNow());
 		for (Account acc : toUpdateAccounts) {
 			@CheckForNull
 			Throwable exception;
@@ -329,21 +241,17 @@ public class SyncService {
 		return result.toString();
 	}
 
-	private void updateCharactersForAccount(final @NonNull Account acc)
+	private void updateCharactersForAccount(final @Nonnull Account acc)
 			throws RedirectionException, UnexpectedStatusException, IOException, ProtocolError, ProtocolException {
-		boolean charactersAdded = false;
 		log.info("Update characters for " + acc.getAccountId() + " with " + acc.getToken());
 		{
 			HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 			List<BNetProfileWowCharacter> bnetCharacters = executor.execute(config.uriBNetAccountCharacters(),
 					new HeaderDecorated<>(new BNetProfileWowCharactersRequest(),
 							new TokenHeaderDecorator(acc.getToken())));
+			bnetCharacters = removeNonGuildCharacters(bnetCharacters);
 			bnetCharacters = Collections.unmodifiableList(bnetCharacters);
-			charactersAdded = addCharacters(acc.getAccountId(), bnetCharacters);
-
-			if (charactersAdded) {
-				createRemoteCommands(acc.getAccountId(), RemoteCommand.Commands.ACC_UPDATE);
-			}
+			addCharacters(acc.getAccountId(), bnetCharacters);
 		}
 	}
 }

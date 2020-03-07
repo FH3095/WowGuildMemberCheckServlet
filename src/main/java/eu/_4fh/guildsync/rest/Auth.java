@@ -4,17 +4,10 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Base64;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -39,9 +32,8 @@ import org.dmfs.rfc3986.uris.LazyUri;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.config.Config;
-import eu._4fh.guildsync.db.DbWrapper;
+import eu._4fh.guildsync.helper.MacCalculator;
 import eu._4fh.guildsync.rest.helper.HtmlHelper;
 import eu._4fh.guildsync.rest.helper.RequiredParam;
 import eu._4fh.guildsync.service.SyncService;
@@ -52,17 +44,17 @@ public class Auth {
 		private static final long serialVersionUID = 2781228208547364912L;
 		public static final String sessionKey = "authInformations";
 
-		public final @NonNull long guildId;
-		public final @NonNull String remoteSystemName;
-		public final @NonNull long remoteAccountId;
-		public final @NonNull URI redirectTo;
+		public final @Nonnull String remoteSystemName;
+		public final @Nonnull long remoteAccountId;
+		public final @Nonnull URI redirectTo;
+		public final @Nonnull OAuth2GrantState grantState;
 
-		public AuthInformations(final @NonNull long guildId, final @NonNull String remoteSystemName,
-				final @NonNull long remoteAccountId, final @NonNull URI redirectTo) {
-			this.guildId = guildId;
+		public AuthInformations(final @Nonnull String remoteSystemName, final @Nonnull long remoteAccountId,
+				final @Nonnull URI redirectTo, final @Nonnull OAuth2GrantState grantState) {
 			this.remoteSystemName = remoteSystemName;
 			this.remoteAccountId = remoteAccountId;
 			this.redirectTo = redirectTo;
+			this.grantState = grantState;
 		}
 	}
 
@@ -78,54 +70,31 @@ public class Auth {
 	@GET
 	@Path("start")
 	@Produces(MediaType.TEXT_HTML)
-	public Response start(final @QueryParam("guildId") @RequiredParam Long guildId,
-			final @QueryParam("systemName") @RequiredParam String remoteSystemName,
+	public Response start(final @QueryParam("systemName") @RequiredParam String remoteSystemName,
 			final @QueryParam("remoteAccountId") @RequiredParam Long remoteId,
 			final @QueryParam("redirectTo") @RequiredParam String redirectTo,
 			final @QueryParam("mac") @RequiredParam String macIn) throws URISyntaxException {
-		if (!config.allowedRemoteSystems().contains(remoteSystemName)) {
-			throw new BadRequestException("Not allowed remote system: " + remoteSystemName);
-		}
 
-		String macKey = DbWrapper.guildGetMacKeyById(guildId);
-		if (macKey == null) {
-			throw new BadRequestException("Unknown guild id " + guildId);
-		}
+		MacCalculator.testMac(macIn, remoteSystemName, String.valueOf(remoteId), redirectTo);
 
-		try {
-			String toMacValues = String.valueOf(guildId) + remoteSystemName + String.valueOf(remoteId);
-			SecretKeySpec key = new SecretKeySpec(Base64.getDecoder().decode(macKey), "HmacSHA256");
-			Mac localMac = Mac.getInstance("HmacSHA256");
-			localMac.init(key);
-			byte[] localMacResult = localMac.doFinal(toMacValues.getBytes(StandardCharsets.UTF_8));
-			byte[] inMacResult = Base64.getDecoder().decode(macIn);
-			if (!Arrays.equals(inMacResult, localMacResult)) {
-				throw new BadRequestException("Invalid MAC");
-			}
-		} catch (NoSuchAlgorithmException | InvalidKeyException e) {
-			throw new RuntimeException(e);
-		}
+		OAuth2InteractiveGrant grant = new AuthorizationCodeGrant(config.oAuth2Client(), config.oAuth2Scope());
 
 		HttpSession session = request.getSession(true);
 		session.setMaxInactiveInterval(900);
 		try {
 			session.setAttribute(AuthInformations.sessionKey,
-					new AuthInformations(guildId, remoteSystemName, remoteId, new URI(redirectTo)));
+					new AuthInformations(remoteSystemName, remoteId, new URI(redirectTo), grant.state()));
 		} catch (URISyntaxException e) {
 			throw new RuntimeException(e);
 		}
 
-		OAuth2InteractiveGrant grant = new AuthorizationCodeGrant(config.oAuth2Client(), config.oAuth2Scope());
-
 		URI authorizationUrl = grant.authorizationUrl();
-		session.setAttribute("grantState", grant.state());
-
 		// Redirect as html. It seems there are multiple browsers out there that at least had problems with HTTP-Redirects with cookies
 		// https://bugs.webkit.org/show_bug.cgi?id=3512
 		// https://bugs.chromium.org/p/chromium/issues/detail?id=150066
 		String result = HtmlHelper.getHtmlDoctype() + "<html><head>\n" + "<title>Redirect</title>\n"
 				+ "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=UTF-8\">\n"
-				+ "<meta http-equiv=\"refresh\" content=\"5; URL=" + HtmlHelper.encodeLinkForHref(authorizationUrl)
+				+ "<meta http-equiv=\"refresh\" content=\"3; URL=" + HtmlHelper.encodeLinkForHref(authorizationUrl)
 				+ "\">\n" + "</head>\n\n" + "<body>\n" + "<p>Wait one moment please.</p>\n" + "</body></html>\n";
 		return Response.ok(result).build();
 	}
@@ -136,15 +105,13 @@ public class Auth {
 	public Response finish() {
 		try {
 			HttpSession session = request.getSession(false);
-			if (session == null || session.getAttribute("grantState") == null
-					|| !(session.getAttribute("grantState") instanceof OAuth2GrantState)
-					|| session.getAttribute(AuthInformations.sessionKey) == null
+			if (session == null || session.getAttribute(AuthInformations.sessionKey) == null
 					|| !(session.getAttribute(AuthInformations.sessionKey) instanceof AuthInformations)) {
 				throw new ForbiddenException("Cant find your session, please try again");
 			}
 
 			AuthInformations authInformations = (AuthInformations) session.getAttribute(AuthInformations.sessionKey);
-			OAuth2GrantState grantState = (OAuth2GrantState) session.getAttribute("grantState");
+			OAuth2GrantState grantState = authInformations.grantState;
 
 			if (uriInfo.getQueryParameters().containsKey("error")) {
 				String errorMsg = uriInfo.getQueryParameters().getFirst("error");
@@ -168,7 +135,7 @@ public class Auth {
 					+ ". Token: " + token.accessToken() + " valid until " + token.expirationDate().toString() + " for "
 					+ token.scope().toString() + " as " + token.tokenType() + " with refresh "
 					+ Boolean.toString(token.hasRefreshToken()) + " ; Redirecting to " + authInformations.redirectTo);
-			new SyncService(authInformations.guildId).addOrUpdateAccount(token, authInformations.remoteSystemName,
+			new SyncService().addOrUpdateAccount(token, authInformations.remoteSystemName,
 					authInformations.remoteAccountId);
 			return Response.seeOther(authInformations.redirectTo).build();
 		} catch (ProtocolError | ProtocolException | IOException e) {

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+	<ResourceLink name="jdbc/db" global="jdbc/guildsyncdb"
+		type="javax.sql.DataSource" />
+
+
+	<Environment name="conf/afterCharacterAddDontDeleteForDays"
+		value="5" type="java.lang.Integer" override="false" />
+
+	<Environment name="conf/numRetries" value="3"
+		type="java.lang.Integer" override="false" />
+
+
+	<Environment name="conf/macKey"
+		value="1ntevwXq25lEmyR4hBpO+BpX36qjmR/+o+UbFPJmmRiFnCyuLnhChH74IKYntT89OCONL+E7Wy7MzfMSEnFt4w=="
+		type="java.lang.String" override="false" />
+
+
+	<Environment name="bnet/ApiKey" value="XXX"
+		type="java.lang.String" override="false" />
+
+	<Environment name="bnet/ApiSecret" value="YYY"
+		type="java.lang.String" override="false" />
+
+	<Environment name="bnet/scope" value="wow.profile"
+		type="java.lang.String" override="false" />
+
+	<Environment name="bnet/DefaultTokenDuration" value="86400"
+		type="java.lang.Integer" override="false" />
+
+
+	<Environment name="bnet/uri/oauth/userinfo"
+		value="https://eu.battle.net/oauth/userinfo" type="java.lang.String"
+		override="false" />
+
+	<Environment name="bnet/uri/profile/characters"
+		value="https://eu.api.blizzard.com/profile/user/wow?namespace=profile-eu&amp;locale=en_GB"
+		type="java.lang.String" override="false" />
+
+	<Environment name="bnet/uri/guild/members"
+		value="https://eu.api.blizzard.com/data/wow/guild/rexxar/Test%20Guild/roster?namespace=profile-eu&amp;locale=en_GB"
+		type="java.lang.String" override="false" />
+
+	<Environment name="bnet/uri/oauth/authorize"
+		value="https://eu.battle.net/oauth/authorize" type="java.lang.String"
+		override="false" />
+
+	<Environment name="bnet/uri/oauth/token"
+		value="https://eu.battle.net/oauth/token" type="java.lang.String"
+		override="false" />
+
+	<Environment name="bnet/authRedirectTarget"
+		value="https://localhost/rest/auth/finish" type="java.lang.String"
+		override="false" />
+</Context>

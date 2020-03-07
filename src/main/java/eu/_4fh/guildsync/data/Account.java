@@ -1,21 +1,21 @@
 package eu._4fh.guildsync.data;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 
 public class Account {
-	private final @NonNull long accountId;
-	private final @NonNull String token;
+	private final @Nonnull long accountId;
+	private final @Nonnull String token;
 
-	public Account(final @NonNull long accountId, final @NonNull String token) {
+	public Account(final @Nonnull long accountId, final @Nonnull String token) {
 		this.accountId = accountId;
 		this.token = token;
 	}
 
-	public @NonNull long getAccountId() {
+	public @Nonnull long getAccountId() {
 		return accountId;
 	}
 
-	public @NonNull String getToken() {
+	public @Nonnull String getToken() {
 		return token;
 	}
 }
