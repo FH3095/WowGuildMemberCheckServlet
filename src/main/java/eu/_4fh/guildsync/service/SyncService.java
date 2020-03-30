@@ -254,4 +254,10 @@ public class SyncService {
 			addCharacters(acc.getAccountId(), bnetCharacters);
 		}
 	}
+
+	public List<Long> getAllRemoteIdsByRemoteSystem(final String remoteSystemName) {
+		try (final Transaction trans = Transaction.getTransaction()) {
+			return db.accountsGetByRemoteSystem(remoteSystemName);
+		}
+	}
 }

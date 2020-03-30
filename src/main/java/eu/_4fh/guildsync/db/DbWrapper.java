@@ -45,6 +45,22 @@ public class DbWrapper {
 		}
 	}
 
+	public List<Long> accountsGetByRemoteSystem(final @Nonnull String remoteSystemName) {
+		final String sql = "SELECT remote_id FROM account_remote_ids WHERE remote_system_name = ? ORDER BY remote_id";
+		try (final Transaction trans = getTrans(); final PreparedStatement stmt = trans.prepareStatement(sql)) {
+			final List<Long> result = new ArrayList<>();
+			stmt.setString(1, remoteSystemName);
+			try (final ResultSet rs = stmt.executeQuery()) {
+				while (rs.next()) {
+					result.add(rs.getLong(1));
+				}
+				return Collections.unmodifiableList(result);
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public int accountsDeleteWhenUnused(Calendar today) {
 		final String sql = "DELETE FROM accounts WHERE " + "(token_valid_until < ? OR token_valid_until IS NULL) AND "
 				+ "id NOT IN (SELECT account_id FROM characters)";
