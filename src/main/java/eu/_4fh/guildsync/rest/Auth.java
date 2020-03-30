@@ -71,7 +71,7 @@ public class Auth {
 	@Path("start")
 	@Produces(MediaType.TEXT_HTML)
 	public Response start(final @QueryParam("systemName") @RequiredParam String remoteSystemName,
-			final @QueryParam("remoteAccountId") @RequiredParam Long remoteId,
+			final @QueryParam("remoteId") @RequiredParam Long remoteId,
 			final @QueryParam("redirectTo") @RequiredParam String redirectTo,
 			final @QueryParam("mac") @RequiredParam String macIn) throws URISyntaxException {
 

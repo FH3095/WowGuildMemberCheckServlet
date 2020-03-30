@@ -20,7 +20,7 @@ public class Chars {
 	@Path("get")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<WowCharacter> getCharacters(@QueryParam("systemName") @RequiredParam String remoteSystem,
-			@QueryParam("remoteAccountId") @RequiredParam Long remoteAccountId,
+			@QueryParam("remoteId") @RequiredParam Long remoteAccountId,
 			final @QueryParam("mac") @RequiredParam String macIn) {
 		MacCalculator.testMac(macIn, remoteSystem, String.valueOf(remoteAccountId));
 		return new DbWrapper().charactersGetByRemoteAccountId(remoteSystem, remoteAccountId);
