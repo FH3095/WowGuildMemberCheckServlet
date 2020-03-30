@@ -260,4 +260,18 @@ public class SyncService {
 			return db.accountsGetByRemoteSystem(remoteSystemName);
 		}
 	}
+
+	public boolean isOfficer(final String remoteSystemName, final Long remoteId) {
+		try (final Transaction trans = Transaction.getTransaction()) {
+			final Integer rank = db.accountGetMinRankByRemoteSystemId(remoteSystemName, remoteId);
+			if (rank == null) {
+				return false;
+			}
+			if (rank <= config.officerMaxRank()) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
 }

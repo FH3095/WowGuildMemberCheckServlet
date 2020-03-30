@@ -55,6 +55,7 @@ public class Config {
 	private final @Nonnull byte[] macKeyArray;
 
 	private final int afterCharacterAddDontDeleteForDays;
+	private final int officerMaxRank;
 
 	public static @Nonnull Config getInstance() {
 		return instance;
@@ -90,6 +91,7 @@ public class Config {
 		dbDataSource = getContextObject("jdbc/db", DataSource.class);
 
 		afterCharacterAddDontDeleteForDays = getContextObject("conf/afterCharacterAddDontDeleteForDays", Integer.class);
+		officerMaxRank = getContextObject("conf/officerMaxRank", Integer.class);
 		numBNetRetries = getContextObject("conf/numRetries", Integer.class);
 
 		macKeyArray = Base64.getDecoder().decode(getContextObject("conf/macKey", String.class));
@@ -131,6 +133,10 @@ public class Config {
 
 	public int afterCharacterAddDontDeleteForDays() {
 		return afterCharacterAddDontDeleteForDays;
+	}
+
+	public int officerMaxRank() {
+		return officerMaxRank;
 	}
 
 	public int bnetNumRetries() {

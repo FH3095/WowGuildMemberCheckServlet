@@ -125,6 +125,25 @@ public class DbWrapper {
 		}
 	}
 
+	public @CheckForNull Integer accountGetMinRankByRemoteSystemId(final @Nonnull String remoteSystemName,
+			final @Nonnull Long remoteId) {
+		final String sql = "SELECT MIN(rank) FROM characters WHERE "
+				+ "account_id IN (SELECT account_id FROM account_remote_ids WHERE remote_system_name = ? AND remote_id = ?) "
+				+ "GROUP BY account_id";
+		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
+			stmt.setString(1, remoteSystemName);
+			stmt.setLong(2, remoteId);
+			try (ResultSet rs = stmt.executeQuery()) {
+				if (!rs.next()) {
+					return null;
+				}
+				return rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public @Nonnull Long accountAdd() {
 		final String sql = "INSERT INTO accounts() VALUES()";
 		try (Transaction trans = getTrans();

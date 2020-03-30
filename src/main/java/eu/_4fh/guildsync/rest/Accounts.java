@@ -23,4 +23,14 @@ public class Accounts {
 		MacCalculator.testMac(mac, remoteSystemName);
 		return new SyncService().getAllRemoteIdsByRemoteSystem(remoteSystemName);
 	}
+
+	@GET
+	@Path("isOfficer")
+	@Produces(MediaType.APPLICATION_JSON)
+	public boolean isOfficer(final @RequiredParam @QueryParam("systemName") String remoteSystemName,
+			final @RequiredParam @QueryParam("remoteId") Long remoteId,
+			final @RequiredParam @QueryParam("mac") String mac) {
+		MacCalculator.testMac(mac, remoteSystemName, String.valueOf(remoteId));
+		return new SyncService().isOfficer(remoteSystemName, remoteId);
+	}
 }
