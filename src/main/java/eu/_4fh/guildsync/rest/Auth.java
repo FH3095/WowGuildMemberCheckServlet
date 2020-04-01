@@ -121,6 +121,7 @@ public class Auth {
 				UriBuilder builder = UriBuilder.fromUri(authInformations.redirectTo);
 				builder.replaceQueryParam("error", errorMsg);
 				builder.replaceQueryParam("errorDescription", errorDesc);
+				builder.replaceQueryParam("remoteId", authInformations.remoteAccountId);
 				return Response.seeOther(builder.build()).build();
 			}
 
@@ -137,7 +138,9 @@ public class Auth {
 					+ Boolean.toString(token.hasRefreshToken()) + " ; Redirecting to " + authInformations.redirectTo);
 			new SyncService().addOrUpdateAccount(token, authInformations.remoteSystemName,
 					authInformations.remoteAccountId);
-			return Response.seeOther(authInformations.redirectTo).build();
+			UriBuilder builder = UriBuilder.fromUri(authInformations.redirectTo);
+			builder.replaceQueryParam("remoteId", authInformations.remoteAccountId);
+			return Response.seeOther(builder.build()).build();
 		} catch (ProtocolError | ProtocolException | IOException e) {
 			throw new RuntimeException(e);
 		}
