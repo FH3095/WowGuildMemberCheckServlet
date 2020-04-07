@@ -19,7 +19,7 @@ public class BNetProfileWowCharactersRequest extends AbstractBNetRequest<List<BN
 			for (int j = 0; j < characters.length(); ++j) {
 				final JSONObject obj = characters.getJSONObject(j);
 				final BNetProfileWowCharacter character = new BNetProfileWowCharacter(obj.getString("name"),
-						obj.getJSONObject("realm").getString("name"), Integer.MAX_VALUE);
+						obj.getJSONObject("realm").getString("slug"), Integer.MAX_VALUE);
 				result.add(character);
 			}
 		}

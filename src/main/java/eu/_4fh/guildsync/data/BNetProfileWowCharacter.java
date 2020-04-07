@@ -48,4 +48,9 @@ public class BNetProfileWowCharacter {
 		BNetProfileWowCharacter other = (BNetProfileWowCharacter) obj;
 		return Objects.equals(name, other.name) && Objects.equals(server, other.server);
 	}
+
+	@Override
+	public String toString() {
+		return "BNetProfileWowCharacter [name=" + name + ", server=" + server + "]";
+	}
 }
