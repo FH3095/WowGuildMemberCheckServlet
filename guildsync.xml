@@ -38,7 +38,7 @@
 		type="java.lang.String" override="false" />
 
 	<Environment name="bnet/uri/guild/members"
-		value="https://eu.api.blizzard.com/data/wow/guild/rexxar/Test%20Guild/roster?namespace=profile-eu&amp;locale=en_GB"
+		value="https://eu.api.blizzard.com/data/wow/guild/rexxar/test-guild/roster?namespace=profile-eu&amp;locale=en_GB"
 		type="java.lang.String" override="false" />
 
 	<Environment name="bnet/uri/oauth/authorize"
