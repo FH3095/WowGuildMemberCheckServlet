@@ -29,6 +29,10 @@
 		type="java.lang.Integer" override="false" />
 
 
+	<Environment name="bnet/uri/oauth/checkToken"
+		value="https://eu.battle.net/oauth/check_token"
+		type="java.lang.String" override="false" />
+
 	<Environment name="bnet/uri/oauth/userinfo"
 		value="https://eu.battle.net/oauth/userinfo" type="java.lang.String"
 		override="false" />
