@@ -2,18 +2,20 @@ package eu._4fh.guildsync.service;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
+import javax.ws.rs.BadRequestException;
 
 import org.dmfs.httpessentials.client.HttpRequestExecutor;
 import org.dmfs.httpessentials.decoration.HeaderDecorated;
@@ -36,6 +38,7 @@ import eu._4fh.guildsync.data.WowCharacter;
 import eu._4fh.guildsync.db.DbWrapper;
 import eu._4fh.guildsync.db.Transaction;
 import eu._4fh.guildsync.helper.DateHelper;
+import eu._4fh.guildsync.service.requests.BNetCheckTokenRequest;
 import eu._4fh.guildsync.service.requests.BNetGuildMembersRequest;
 import eu._4fh.guildsync.service.requests.BNetProfileInfoRequest;
 import eu._4fh.guildsync.service.requests.BNetProfileWowCharactersRequest;
@@ -47,13 +50,13 @@ public class SyncService {
 	private static final @Nonnull Config config = Config.getInstance();
 
 	private final @Nonnull DbWrapper db;
-	private final @Nonnull Set<BNetProfileWowCharacter> bnetGuildCharacters;
+	private final @Nonnull List<BNetProfileWowCharacter> bnetGuildCharacters;
 
 	public SyncService() {
 		db = new DbWrapper();
 		try {
-			bnetGuildCharacters = Collections.unmodifiableSet(
-					new HashSet<>(new HttpUrlConnectionExecutor().execute(config.uriBNetGuildCharacters(),
+			bnetGuildCharacters = Collections.unmodifiableList(
+					new ArrayList<>(new HttpUrlConnectionExecutor().execute(config.uriBNetGuildCharacters(),
 							new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()))));
 		} catch (IOException | ProtocolError | ProtocolException e) {
 			throw new RuntimeException(e);
@@ -66,8 +69,13 @@ public class SyncService {
 
 		for (final ListIterator<BNetProfileWowCharacter> it = result.listIterator(); it.hasNext();) {
 			final BNetProfileWowCharacter character = it.next();
-			if (!bnetGuildCharacters.contains(character)) {
+			final Optional<BNetProfileWowCharacter> bnetGuildCharacter = bnetGuildCharacters.stream()
+					.filter(guildChar -> guildChar.equals(character)).findAny();
+			if (bnetGuildCharacter.isEmpty()) {
 				it.remove();
+			} else if (character.getGuildRank() != bnetGuildCharacter.get().getGuildRank()) {
+				it.remove();
+				it.add(BNetProfileWowCharacter.copyAndMergeRanks(character, bnetGuildCharacter.get()));
 			}
 		}
 
@@ -110,6 +118,15 @@ public class SyncService {
 			final @Nonnull long remoteId) {
 		HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 		try (final Transaction trans = Transaction.getTransaction()) {
+			final Set<String> scopes = executor.execute(config.uriBNetCheckToken(),
+					new BNetCheckTokenRequest(token.accessToken()));
+			if (!scopes.contains(config.oAuth2ScopeAsString())) {
+				throw new BadRequestException("You need to authorize access to your wow profile. "
+						+ "Please revoke all access at "
+						+ "<a target=\"_blank\" href=\"https://account.blizzard.com/connections#authorized-applications\">https://account.blizzard.com/connections#authorized-applications</a> "
+						+ "and try again.");
+			}
+
 			final BNetProfileInfo info = executor.execute(config.uriBNetAccountInfo(),
 					new BearerAuthenticatedRequest<>(new BNetProfileInfoRequest(), token));
 			List<BNetProfileWowCharacter> characters = executor.execute(config.uriBNetAccountCharacters(),

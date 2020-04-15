@@ -47,6 +47,7 @@ public class Config {
 	private @CheckForNull OAuth2AccessToken oAuthToken;
 	private final @Nonnull String oAuthScope;
 
+	private final @Nonnull URI uriBNetCheckToken;
 	private final @Nonnull URI uriBNetAccountInfo;
 	private final @Nonnull URI uriBNetAccountCharacters;
 	private final @Nonnull URI uriBNetGuildCharacters;
@@ -100,6 +101,8 @@ public class Config {
 
 		// https://eu.battle.net/oauth/userinfo
 		uriBNetAccountInfo = UriBuilder.fromUri(getContextObject("bnet/uri/oauth/userinfo", String.class)).build();
+		// https://eu.battle.net/oauth/check_token
+		uriBNetCheckToken = UriBuilder.fromUri(getContextObject("bnet/uri/oauth/checkToken", String.class)).build();
 		// To all following URLs should be ?namespace=profile-eu&locale=en_GB appended
 		// https://eu.api.blizzard.com/profile/user/wow 
 		uriBNetAccountCharacters = UriBuilder.fromUri(getContextObject("bnet/uri/profile/characters", String.class))
@@ -147,6 +150,10 @@ public class Config {
 		return new BasicScope(oAuthScope);
 	}
 
+	public @Nonnull String oAuth2ScopeAsString() {
+		return oAuthScope;
+	}
+
 	public String macAlgorithm() {
 		return "HmacSHA256";
 	}
@@ -157,6 +164,10 @@ public class Config {
 
 	public @Nonnull OAuth2Client oAuth2Client() {
 		return oAuth2Client;
+	}
+
+	public @Nonnull URI uriBNetCheckToken() {
+		return uriBNetCheckToken;
 	}
 
 	public @Nonnull URI uriBNetAccountInfo() {

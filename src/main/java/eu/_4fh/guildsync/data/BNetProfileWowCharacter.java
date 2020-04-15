@@ -11,6 +11,12 @@ public class BNetProfileWowCharacter {
 	private final @Nonnull String server;
 	private final @Nonnull int guildRank;
 
+	public static BNetProfileWowCharacter copyAndMergeRanks(final BNetProfileWowCharacter char1,
+			final BNetProfileWowCharacter char2) {
+		return new BNetProfileWowCharacter(char1.getName(), char1.getServer(),
+				Math.min(char1.getGuildRank(), char2.getGuildRank()));
+	}
+
 	public BNetProfileWowCharacter(final @Nonnull String name, final @Nonnull String server, final int guildRank) {
 		this.name = name;
 		this.server = server;
