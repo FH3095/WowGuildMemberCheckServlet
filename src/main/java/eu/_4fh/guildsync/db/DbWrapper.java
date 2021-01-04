@@ -318,7 +318,20 @@ public class DbWrapper {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
+	}
 
+	public void remoteAccountUpdate(long accountId, @Nonnull String remoteSystem, long remoteId) {
+		final String sql = "UPDATE account_remote_ids SET remote_id = ? WHERE account_id = ? AND remote_system_name = ?";
+		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
+			stmt.setLong(1, remoteId);
+			stmt.setLong(2, accountId);
+			stmt.setString(3, remoteSystem);
+			if (stmt.executeUpdate() != 1) {
+				throw new RuntimeException("Cant find remote-id for account " + accountId + "(" + remoteSystem + ")");
+			}
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private List<WowCharacter> characterResultSetToList(final @Nonnull @WillNotClose ResultSet rs) throws SQLException {

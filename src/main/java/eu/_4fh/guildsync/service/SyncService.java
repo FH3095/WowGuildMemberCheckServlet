@@ -96,6 +96,8 @@ public class SyncService {
 
 		if (db.remoteAccountIdGetByAccountId(accountId, remoteSystem) == null) {
 			db.remoteAccountAdd(accountId, remoteSystem, remoteId);
+		} else {
+			db.remoteAccountUpdate(accountId, remoteSystem, remoteId);
 		}
 	}
 
