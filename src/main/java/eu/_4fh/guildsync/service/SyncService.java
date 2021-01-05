@@ -116,7 +116,7 @@ public class SyncService {
 		return hasNewCharacter;
 	}
 
-	public long addOrUpdateAccount(final @Nonnull OAuth2AccessToken token, final @Nonnull String remoteSystem,
+	public void addOrUpdateAccount(final @Nonnull OAuth2AccessToken token, final @Nonnull String remoteSystem,
 			final @Nonnull long remoteId) {
 		HttpRequestExecutor executor = new HttpUrlConnectionExecutor();
 		try (final Transaction trans = Transaction.getTransaction()) {
@@ -154,17 +154,16 @@ public class SyncService {
 
 			characters = removeNonGuildCharacters(characters);
 
-			if (accountId == null) {
-				accountId = addAccount(remoteSystem, remoteId, token, info.getId());
-			} else {
-				updateAccount(accountId, remoteSystem, remoteId, token, info.getId());
-			}
 			if (!characters.isEmpty()) {
+				if (accountId == null) {
+					accountId = addAccount(remoteSystem, remoteId, token, info.getId());
+				} else {
+					updateAccount(accountId, remoteSystem, remoteId, token, info.getId());
+				}
 				addCharacters(accountId, characters);
 			}
 
 			trans.commit();
-			return accountId;
 		} catch (IOException | ProtocolError | ProtocolException | SQLException e) {
 			throw new RuntimeException(e);
 		}
