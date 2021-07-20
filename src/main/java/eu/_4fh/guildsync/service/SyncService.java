@@ -2,8 +2,9 @@ package eu._4fh.guildsync.service;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -205,8 +206,8 @@ public class SyncService {
 		StringBuilder result = new StringBuilder();
 		try {
 			log.info("Updating characters from guild list");
-			final Calendar onlyDeleteCharactersAddedBefore = DateHelper.getNow();
-			onlyDeleteCharactersAddedBefore.add(Calendar.DATE, config.afterCharacterAddDontDeleteForDays() * -1);
+			final Instant onlyDeleteCharactersAddedBefore = DateHelper.getNow()
+					.minus(config.afterCharacterAddDontDeleteForDays(), ChronoUnit.DAYS);
 			// For old Battle.net API
 			/*
 			List<BNetProfileWowCharacter> bnetGuildCharacters = executor
@@ -226,7 +227,8 @@ public class SyncService {
 						.filter(bnetCharacter -> character.getName().equalsIgnoreCase(bnetCharacter.getName())
 								&& character.getServer().equalsIgnoreCase(bnetCharacter.getServer()))
 						.findFirst().orElse(null);
-				if (character.getAddedDate().before(onlyDeleteCharactersAddedBefore) && matchingBnetCharacter == null) {
+				if (character.getAddedDate().isBefore(onlyDeleteCharactersAddedBefore)
+						&& matchingBnetCharacter == null) {
 					log.info("Delete no longer existing character " + character.getName() + "-" + character.getServer()
 							+ " from account " + accountId);
 					db.characterDelete(accountId, character);

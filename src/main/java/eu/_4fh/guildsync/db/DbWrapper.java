@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import javax.annotation.WillNotClose;
 import org.dmfs.httpessentials.exceptions.ProtocolException;
 import org.dmfs.oauth2.client.OAuth2AccessToken;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.data.Account;
 import eu._4fh.guildsync.data.WowCharacter;
 import eu._4fh.guildsync.helper.DateHelper;
@@ -29,12 +31,16 @@ public class DbWrapper {
 		return Transaction.getTransaction();
 	}
 
-	public List<Account> accountsGetWithTokenValidUntil(Calendar cal) {
+	private static Calendar getUtcCalendar() {
+		return Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+	}
+
+	public List<Account> accountsGetWithTokenValidUntil(final @NonNull Instant minValidUntil) {
 		final String sql = "SELECT id, token FROM accounts "
 				+ "WHERE token IS NOT NULL and token_valid_until IS NOT NULL and token_valid_until > ? ORDER BY id";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			List<Account> result = new ArrayList<>();
-			stmt.setTimestamp(1, DateHelper.calendarToSqlDate(cal));
+			stmt.setTimestamp(1, DateHelper.instantToSqlDate(minValidUntil), getUtcCalendar());
 			try (ResultSet rs = stmt.executeQuery()) {
 				while (rs.next()) {
 					result.add(new Account(rs.getLong(1), rs.getString(2)));
@@ -62,11 +68,11 @@ public class DbWrapper {
 		}
 	}
 
-	public int accountsDeleteWhenUnused(Calendar today) {
+	public int accountsDeleteWhenUnused(final Instant validUntilBefore) {
 		final String sql = "DELETE FROM accounts WHERE " + "(token_valid_until < ? OR token_valid_until IS NULL) AND "
 				+ "id NOT IN (SELECT account_id FROM characters)";
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
-			stmt.setTimestamp(1, DateHelper.calendarToSqlDate(today));
+			stmt.setTimestamp(1, DateHelper.instantToSqlDate(validUntilBefore), getUtcCalendar());
 			return stmt.executeUpdate();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -172,8 +178,7 @@ public class DbWrapper {
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			stmt.setLong(1, battleNetId);
 			stmt.setString(2, token.accessToken().toString());
-			stmt.setTimestamp(3,
-					DateHelper.dateTimeToSqlDate(token.expirationDate().shiftTimeZone(TimeZone.getDefault())));
+			stmt.setTimestamp(3, DateHelper.dateTimeToSqlDate(token.expirationDate()), getUtcCalendar());
 			stmt.setLong(4, accountId);
 			int updatedRows = stmt.executeUpdate();
 			if (updatedRows != 1) {
@@ -260,7 +265,7 @@ public class DbWrapper {
 			stmt.setString(2, newCharacter.getName());
 			stmt.setString(3, newCharacter.getServer());
 			stmt.setInt(4, newCharacter.getRank());
-			stmt.setTimestamp(5, DateHelper.calendarToSqlDate(DateHelper.getNow()));
+			stmt.setTimestamp(5, DateHelper.instantToSqlDate(DateHelper.getNow()), getUtcCalendar());
 			stmt.executeUpdate();
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
@@ -340,7 +345,7 @@ public class DbWrapper {
 		List<WowCharacter> result = new ArrayList<>();
 		while (rs.next()) {
 			result.add(new WowCharacter(rs.getString(1), rs.getString(2), rs.getInt(3),
-					DateHelper.sqlDateToCalendar(rs.getTimestamp(4))));
+					DateHelper.sqlDateToInstant(rs.getTimestamp(4, getUtcCalendar()))));
 		}
 		return Collections.unmodifiableList(result);
 	}

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.TimeZone;
 
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
@@ -134,8 +133,7 @@ public class Auth {
 					.accessToken(executor);
 
 			log.info("Auth finished for " + authInformations.remoteAccountId + "@" + authInformations.remoteSystemName
-					+ ". Token: " + token.accessToken() + " valid until "
-					+ token.expirationDate().shiftTimeZone(TimeZone.getDefault()).toString() + " for "
+					+ ". Token: " + token.accessToken() + " valid until " + token.expirationDate().toString() + " for "
 					+ token.scope().toString() + " as " + token.tokenType() + " with refresh "
 					+ Boolean.toString(token.hasRefreshToken()) + " ; Redirecting to " + authInformations.redirectTo);
 			new SyncService().addOrUpdateAccount(token, authInformations.remoteSystemName,

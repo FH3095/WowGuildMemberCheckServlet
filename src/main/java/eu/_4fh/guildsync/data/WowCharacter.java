@@ -1,6 +1,6 @@
 package eu._4fh.guildsync.data;
 
-import java.util.Calendar;
+import java.time.Instant;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -13,17 +13,17 @@ public class WowCharacter {
 	private @Nonnull String name;
 	private @Nonnull String server;
 	private @Nonnull int rank;
-	private @Nonnull Calendar addedDate;
+	private @Nonnull Instant addedDate;
 
 	public WowCharacter(final @Nonnull String name, final @Nonnull String server, final @Nonnull int rank,
-			final @Nonnull Calendar addedDate) {
+			final @Nonnull Instant addedDate) {
 		Objects.requireNonNull(name);
 		Objects.requireNonNull(server);
 		Objects.requireNonNull(addedDate);
 		this.name = name;
 		this.server = server;
 		this.rank = rank;
-		this.addedDate = (Calendar) addedDate.clone();
+		this.addedDate = addedDate;
 	}
 
 	// For JAX-RS
@@ -47,8 +47,8 @@ public class WowCharacter {
 		return rank;
 	}
 
-	public @Nonnull Calendar getAddedDate() {
-		return (Calendar) addedDate.clone();
+	public @Nonnull Instant getAddedDate() {
+		return addedDate;
 	}
 
 	@Override
