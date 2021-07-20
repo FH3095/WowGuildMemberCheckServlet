@@ -11,6 +11,7 @@ import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -30,6 +31,7 @@ import org.dmfs.oauth2.client.http.decorators.BearerAuthenticatedRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import eu._4fh.guildsync.config.Config;
 import eu._4fh.guildsync.data.Account;
 import eu._4fh.guildsync.data.BNetProfileInfo;
@@ -50,17 +52,25 @@ public class SyncService {
 	private static final @Nonnull Config config = Config.getInstance();
 
 	private final @Nonnull DbWrapper db;
-	private final @Nonnull List<BNetProfileWowCharacter> bnetGuildCharacters;
+	private final @Nonnull AtomicReference<List<BNetProfileWowCharacter>> bnetGuildCharacters;
 
 	public SyncService() {
 		db = new DbWrapper();
-		try {
-			bnetGuildCharacters = Collections.unmodifiableList(
+		bnetGuildCharacters = new AtomicReference<List<BNetProfileWowCharacter>>(null);
+	}
+
+	private @NonNull List<BNetProfileWowCharacter> getBnetGuildCharacters()
+			throws IOException, ProtocolError, ProtocolException {
+		List<BNetProfileWowCharacter> result = bnetGuildCharacters.get();
+		if (result == null) {
+			result = Collections.unmodifiableList(
 					new ArrayList<>(new HttpUrlConnectionExecutor().execute(config.uriBNetGuildCharacters(),
 							new BearerAuthenticatedRequest<>(new BNetGuildMembersRequest(), config.token()))));
-		} catch (IOException | ProtocolError | ProtocolException e) {
-			throw new RuntimeException(e);
+			if (!bnetGuildCharacters.compareAndSet(null, result)) {
+				result = bnetGuildCharacters.get();
+			}
 		}
+		return result;
 	}
 
 	private @Nonnull List<BNetProfileWowCharacter> removeNonGuildCharacters(
@@ -69,8 +79,13 @@ public class SyncService {
 
 		for (final ListIterator<BNetProfileWowCharacter> it = result.listIterator(); it.hasNext();) {
 			final BNetProfileWowCharacter character = it.next();
-			final Optional<BNetProfileWowCharacter> bnetGuildCharacter = bnetGuildCharacters.stream()
-					.filter(guildChar -> guildChar.equals(character)).findAny();
+			final Optional<BNetProfileWowCharacter> bnetGuildCharacter;
+			try {
+				bnetGuildCharacter = getBnetGuildCharacters().stream().filter(guildChar -> guildChar.equals(character))
+						.findAny();
+			} catch (IOException | ProtocolError | ProtocolException e) {
+				throw new RuntimeException(e);
+			}
 			if (bnetGuildCharacter.isEmpty()) {
 				it.remove();
 			} else if (character.getGuildRank() != bnetGuildCharacter.get().getGuildRank()) {
@@ -161,6 +176,8 @@ public class SyncService {
 					updateAccount(accountId, remoteSystem, remoteId, token, info.getId());
 				}
 				addCharacters(accountId, characters);
+			} else if (accountId == null) {
+				addAccount(remoteSystem, remoteId, token, info.getId());
 			}
 
 			trans.commit();
@@ -205,7 +222,7 @@ public class SyncService {
 							"Cant find account-id for character " + character.getName() + "-" + character.getServer());
 				}
 
-				final @CheckForNull BNetProfileWowCharacter matchingBnetCharacter = bnetGuildCharacters.stream()
+				final @CheckForNull BNetProfileWowCharacter matchingBnetCharacter = getBnetGuildCharacters().stream()
 						.filter(bnetCharacter -> character.getName().equalsIgnoreCase(bnetCharacter.getName())
 								&& character.getServer().equalsIgnoreCase(bnetCharacter.getServer()))
 						.findFirst().orElse(null);
