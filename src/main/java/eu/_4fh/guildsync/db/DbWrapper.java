@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -171,7 +172,8 @@ public class DbWrapper {
 		try (Transaction trans = getTrans(); PreparedStatement stmt = trans.prepareStatement(sql)) {
 			stmt.setLong(1, battleNetId);
 			stmt.setString(2, token.accessToken().toString());
-			stmt.setTimestamp(3, DateHelper.dateTimeToSqlDate(token.expirationDate()));
+			stmt.setTimestamp(3,
+					DateHelper.dateTimeToSqlDate(token.expirationDate().shiftTimeZone(TimeZone.getDefault())));
 			stmt.setLong(4, accountId);
 			int updatedRows = stmt.executeUpdate();
 			if (updatedRows != 1) {

@@ -6,6 +6,8 @@ import java.security.Key;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TimeZone;
+import java.util.TimeZone;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -185,7 +187,7 @@ public class Config {
 	public synchronized @Nonnull OAuth2AccessToken token() throws ProtocolException, IOException, ProtocolError {
 		if (oAuthToken != null) {
 			log.debug("Token expiration: Token {} expires {}", oAuthToken.accessToken(),
-					oAuthToken.expirationDate().toString());
+					oAuthToken.expirationDate().shiftTimeZone(TimeZone.getDefault()).toString());
 		}
 		if (oAuthToken == null || oAuthToken.expirationDate().before(DateTime.now())) {
 			oAuthToken = new ClientCredentialsGrant(oAuth2Client(), oAuth2Scope())

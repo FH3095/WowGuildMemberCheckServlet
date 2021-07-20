@@ -24,7 +24,7 @@ public class DateHelper {
 	}
 
 	public static Calendar getNow() {
-		Calendar today = Calendar.getInstance();
+		final Calendar today = Calendar.getInstance();
 		return today;
 	}
 }
