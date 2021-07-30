@@ -52,8 +52,9 @@ public class DbWrapper {
 		}
 	}
 
-	public List<Long> accountsGetByRemoteSystem(final @Nonnull String remoteSystemName) {
-		final String sql = "SELECT remote_id FROM account_remote_ids WHERE remote_system_name = ? ORDER BY remote_id";
+	public List<Long> accountsWithCharacterGetByRemoteSystem(final @Nonnull String remoteSystemName) {
+		final String sql = "SELECT remote_id FROM account_remote_ids WHERE "
+				+ " account_id IN (SELECT account_id FROM characters) AND remote_system_name = ? ORDER BY remote_id";
 		try (final Transaction trans = getTrans(); final PreparedStatement stmt = trans.prepareStatement(sql)) {
 			final List<Long> result = new ArrayList<>();
 			stmt.setString(1, remoteSystemName);

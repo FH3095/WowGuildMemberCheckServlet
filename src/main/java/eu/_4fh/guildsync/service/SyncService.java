@@ -294,7 +294,7 @@ public class SyncService {
 
 	public List<Long> getAllRemoteIdsByRemoteSystem(final String remoteSystemName) {
 		try (final Transaction trans = Transaction.getTransaction()) {
-			return db.accountsGetByRemoteSystem(remoteSystemName);
+			return db.accountsWithCharacterGetByRemoteSystem(remoteSystemName);
 		}
 	}
 
